@@ -28,6 +28,7 @@ def run(finding_path: str, spec_path: str,
     lang     = f["lang"]
     rule_id  = f["rule_id"].replace("/", "_")
     function = f.get("function_name", "unknown")          # ← fix: KeyError → ""unknown""
+    finding_id = f.get("id", "0")
 
     repo_root = config.get("repo_root", "").format(repo=repo)
 
@@ -63,7 +64,7 @@ def run(finding_path: str, spec_path: str,
 
     # 5. Write harness output
     out_path = Path(
-        config["harness_out"].format(lang=lang, repo=repo, rule_id=rule_id)
+        config["harness_out"].format(lang=lang, repo=repo, rule_id=rule_id, id=finding_id)
     )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(code, encoding="utf-8")
@@ -71,7 +72,7 @@ def run(finding_path: str, spec_path: str,
     # 6. Write seed corpus                                 # ← thêm
     seed_corpus = spec.get("fuzz_guidance", {}).get("seed_corpus", [])
     if seed_corpus:
-        corpus_dir = out_path.parent / "corpus" / rule_id
+        corpus_dir = out_path.parent / "corpus" / f"{finding_id}_{rule_id}"
         corpus_dir.mkdir(parents=True, exist_ok=True)
         for i, seed in enumerate(seed_corpus):
             (corpus_dir / f"seed_{i:03d}").write_bytes(
@@ -83,6 +84,6 @@ def run(finding_path: str, spec_path: str,
     logging.info(f"\n[Stage2] Run with:")
     logging.info(f"  python {out_path} -atheris_runs=10000")
     if seed_corpus:
-        logging.info(f"  python {out_path} corpus/{rule_id}/")
+        logging.info(f"  python {out_path} corpus/{finding_id}_{rule_id}/")
 
     return str(out_path)

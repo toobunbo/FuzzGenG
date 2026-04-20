@@ -3,5 +3,5 @@ temperature: 0.15
 max_tokens: 4096
 timeout: 120
 prompts_dir: "src/prompts"
-harness_out: "output/{lang}/{repo}/verification/harness_{rule_id}.py"
+harness_out: "output/{lang}/{repo}/verification/{id}_harness_{rule_id}.py"
 repo_root: "/home/caterpie/ProjectFzz/VulnHunterX-main/repos/{repo}"

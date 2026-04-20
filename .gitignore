@@ -1,0 +1,35 @@
+# Authentication & Secrets
+.env
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+venv/
+*venv/
+env/
+.env/
+
+# Fuzzer generated artifacts
+crash-*
+leak-*
+libFuzzer-*
+
+# Logs
+*.log
+stage1_debug.log
+stage2_debug.log
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Output Directory (Depending on preference, usually you might want to exclude the output or repo clones)
+# output/
+# repos/
+repo/

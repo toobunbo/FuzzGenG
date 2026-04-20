@@ -21,8 +21,9 @@ def run(finding_path: str, config_path: str = "src/config/stage1_config.yaml") -
     f     = finding_full["finding"]
     repo  = f["repo_name"]
     lang  = f["lang"]
-    func  = f["function_name"]
+    func  = f.get("function_name", "unknown")
     file_ = f["file"]
+    finding_id = f.get("id", "0")
 
     sigs  = load_signatures(config["signatures_csv"].format(lang=lang, repo=repo))
     funcs = load_functions(config["functions_csv"].format(lang=lang, repo=repo))
@@ -52,7 +53,7 @@ def run(finding_path: str, config_path: str = "src/config/stage1_config.yaml") -
         "function_signature": sig,
         "model": config["model"],
     })
-    out = Path(config["oracle_spec_out"].format(lang=lang, repo=repo))
+    out = Path(config["oracle_spec_out"].format(lang=lang, repo=repo, id=finding_id))
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(spec, indent=2, ensure_ascii=False), encoding="utf-8")
     logging.info(f"[Stage1] output    : {out}")

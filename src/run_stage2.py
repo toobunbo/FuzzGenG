@@ -35,14 +35,68 @@ def setup_logging(log_file):
     logging.getLogger("litellm").setLevel(logging.WARNING)
 
 if __name__ == "__main__":
+    import json
+    import tempfile
+    import traceback
+    import yaml
+    from pathlib import Path
+    
     parser = argparse.ArgumentParser(description="FuzzGen Stage 2: Harness Generator")
-    parser.add_argument("--finding", required=True, help="Path to findings.json")
-    parser.add_argument("--spec",    required=True, help="Path to oracle_spec.json")
+    parser.add_argument("--finding", required=True, help="Path to findings.json or summary JSON")
+    parser.add_argument("--spec",    required=False, help="Path to oracle_spec.json (Required for single mode)")
     parser.add_argument("--config",  default="src/config/stage2_config.yaml")
+    parser.add_argument("--config1", default="src/config/stage1_config.yaml", help="Used to locate spec in batch mode")
     parser.add_argument("--log-file", help="Path to log file")
+    parser.add_argument("--verdict", choices=["TP", "NMD", "FP", "all"], default="all",
+                        help="Filter findings by verdict: TP (True Positive), NMD (Needs More Data), FP (False Positive) or all")
     args = parser.parse_args()
 
     setup_logging(args.log_file)
-
-    out = run(args.finding, args.spec, args.config)
-    logging.info(f"\n[Stage2] harness ready: {out}")
+    
+    data = json.loads(open(args.finding, encoding="utf-8").read())
+    
+    if "verdicts" in data:
+        verdicts = data.get("verdicts", [])
+        logging.info(f"Batch mode: Loaded {len(verdicts)} findings from summary.")
+        c1 = yaml.safe_load(Path(args.config1).read_text())
+        
+        processed = 0
+        success = 0
+        for idx, item in enumerate(verdicts):
+            if not isinstance(item, dict) or "finding" not in item: continue
+            
+            v = item.get("verdict", "")
+            if v == "Error": continue
+            
+            v_map = {"True Positive": "TP", "Needs More Data": "NMD", "False Positive": "FP"}
+            if args.verdict != "all":
+                if v_map.get(v, v) != args.verdict:
+                    continue
+            
+            f = item["finding"]
+            f["id"] = str(idx)
+            
+            logging.info(f"\n{'='*50}\nProcessing Finding {idx}: {f.get('rule_id')} (Verdict: {v})\n{'='*50}")
+            tmp = tempfile.mktemp(suffix=".json")
+            with open(tmp, "w", encoding="utf-8") as tf:
+                json.dump({"finding": f}, tf, ensure_ascii=False)
+                
+            try:
+                spec_path = Path(c1["oracle_spec_out"].format(lang=f.get("lang"), repo=f.get("repo_name"), id=f["id"]))
+                if not spec_path.exists():
+                    raise FileNotFoundError(f"Oracle spec not generated at {spec_path}")
+                out = run(tmp, str(spec_path), args.config)
+                logging.info(f"[Stage2] harness ready: {out}")
+                success += 1
+            except Exception as e:
+                logging.error(f"Failed to process finding {idx}: {e}")
+                logging.debug(traceback.format_exc())
+            finally:
+                if os.path.exists(tmp): os.remove(tmp)
+            processed += 1
+        logging.info(f"Batch processing completed! Processed: {processed}, Successful: {success}")
+    else:
+        if not args.spec:
+            parser.error("--spec is required in single finding mode.")
+        out = run(args.finding, args.spec, args.config)
+        logging.info(f"\n[Stage2] harness ready: {out}")

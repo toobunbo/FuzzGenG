@@ -1,0 +1,1544 @@
+{
+    "timestamp": "2026-03-17T13:54:51.806488",
+    "provider": "openai",
+    "model": "glm-5",
+    "total_findings": 42,
+    "total_time_seconds": 3621.0739398002625,
+    "stats": {
+        "True Positive": 2,
+        "False Positive": 19,
+        "Needs More Data": 4,
+        "Error": 17
+    },
+    "verdicts": [
+        {
+            "finding": {
+                "rule_id": "py/full-ssrf",
+                "message": "The full URL of this request depends on a [user-provided value](1).\nThe full URL of this request depends on a [user-provided value](2).\nThe full URL of this request depends on a [user-provided value](3).\nThe full URL of this request depends on a [user-provided value](4).\nThe full URL of this request depends on a [user-provided value](5).\nThe full URL of this request depends on a [user-provided value](6).\nThe full URL of this request depends on a [user-provided value](7).\nThe full URL of this request depends on a [user-provided value](8).\nThe full URL of this request depends on a [user-provided value](9).\nThe full URL of this request depends on a [user-provided value](10).\nThe full URL of this request depends on a [user-provided value](11).\nThe full URL of this request depends on a [user-provided value](12).\nThe full URL of this request depends on a [user-provided value](13).\nThe full URL of this request depends on a [user-provided value](14).",
+                "file": "client/python/gradio_client/client.py",
+                "start_line": 1342,
+                "end_line": 1350,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "This is a client library (gradio_client), not server-side code. SSRF requires an attacker triggering server-side requests, but here the 'user-provided value' is the user's intentional choice of which Gradio server to connect to. The trust boundary is at the user's choice of server - there is no cross-trust-boundary vulnerability.",
+            "answers": [
+                "Q1: Source is dict parameter 'x' from server API response. User explicitly chose which server to connect to - not attacker-controlled in SSRF sense.",
+                "Q2: x[url]/x[path] (L1342-1347) \u2192 url_path (L1344-1347) \u2192 httpx.stream(url_path) (L1354)",
+                "Q3: Only check is for relative URL prefix (http/https) at L1346. No URL validation or allowlist.",
+                "Q4: Sink is httpx.stream('GET', url_path, ...) at lines 1354-1361",
+                "Q5: Malicious server could redirect client to internal URLs, but client must first choose to connect to that server.",
+                "Q6: This is a CLIENT library - user intentionally connects to a server. Not server-side SSRF. The 'victim' and 'attacker' are the same person.",
+                "Q7: Core production code in client library, not test/debug code."
+            ],
+            "context_needed": [
+                "caller:_download_file"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T12:56:15.329705",
+            "elapsed_seconds": 104.55308413505554,
+            "fp_pattern_matched": "FP-3: Library Convenience Wrapper Pattern - function design intent is caller supplies destination",
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": false,
+            "sink_type": "read",
+            "source_trace": "server response dict x \u2192 url_path (L1344-1347) \u2192 httpx.stream (L1354)",
+            "mitigations_present": [
+                "SSL verification enabled by default",
+                "User explicitly chooses server to connect to"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/full-ssrf",
+                "message": "The full URL of this request depends on a [user-provided value](1).\nThe full URL of this request depends on a [user-provided value](2).\nThe full URL of this request depends on a [user-provided value](3).\nThe full URL of this request depends on a [user-provided value](4).\nThe full URL of this request depends on a [user-provided value](5).\nThe full URL of this request depends on a [user-provided value](6).\nThe full URL of this request depends on a [user-provided value](7).\nThe full URL of this request depends on a [user-provided value](8).\nThe full URL of this request depends on a [user-provided value](9).\nThe full URL of this request depends on a [user-provided value](10).",
+                "file": "gradio/image_utils.py",
+                "start_line": 252,
+                "end_line": 252,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL",
+                "function_name": "extract_svg_content"
+            },
+            "verdict": "True Positive",
+            "confidence": "High",
+            "reasoning": "The extract_svg_content() function accepts user-controlled URLs and makes HTTP requests with no SSRF protections (no URL allowlisting, no internal IP blocking, no scheme restrictions). Gradio is a web framework handling user image uploads, making this a realistic attack vector for SSRF to access internal resources or cloud metadata.",
+            "answers": [
+                "Q1: Source is the `image_file` parameter to `extract_svg_content()` function (line 245). CodeQL has traced 10 user-provided paths to this function.",
+                "Q2: Flow: image_file (param, line 245) \u2192 str() conversion (line 248) \u2192 httpx.get() sink (line 252). Direct flow with no sanitization.",
+                "Q3: Only `is_http_url_like()` check (line 249) which detects URL format but performs NO security validation - no allowlisting, no internal IP blocking, no scheme restrictions.",
+                "Q4: Sink is `httpx.get(image_file)` on line 252 - makes full HTTP GET request to attacker-controlled URL.",
+                "Q5: SSRF - access internal network resources, cloud metadata (169.254.169.254), internal services, bypass firewalls.",
+                "Q6: Function is standalone utility; `preprocess_image()` in same file doesn't call it. But Gradio IS a web framework - user image uploads likely route through this.",
+                "Q7: No - core library code in `gradio/image_utils.py`, documented production function."
+            ],
+            "context_needed": [
+                "callers of extract_svg_content in Gradio codebase",
+                "is_http_url_like implementation"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T12:57:55.413947",
+            "elapsed_seconds": 100.07828664779663,
+            "fp_pattern_matched": null,
+            "severity": "High",
+            "trust_boundary_crossed": true,
+            "attacker_controlled_source": true,
+            "sink_type": "open_read",
+            "source_trace": "user-provided value \u2192 extract_svg_content(image_file, line 245) \u2192 str(image_file, line 248) \u2192 httpx.get(image_file, line 252)",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/clear-text-storage-sensitive-data",
+                "message": "This expression stores [sensitive data (password)](1) as clear text.\nThis expression stores [sensitive data (private)](2) as clear text.",
+                "file": "gradio/processing_utils.py",
+                "start_line": 217,
+                "end_line": 217,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "This is a generic library utility function for caching arbitrary bytes. The function has no intrinsic concept of 'sensitive data' - parameter is named 'data', not 'password'. CodeQL's finding is based on potential propagation from unknown call sites, not on any vulnerability in this function itself. Trust boundary is at application layer.",
+            "answers": [
+                "Source is the 'data' parameter - a generic bytes argument passed by caller. No intrinsic sensitivity.",
+                "data (param) \u2192 hash_bytes(data) \u2192 detect_audio_format(data) \u2192 path.write_bytes(data)",
+                "No content validation - function is data-agnostic. File name sanitized via Path().name for path traversal.",
+                "path.write_bytes(data) at line 217 - writes bytes to cache file on disk.",
+                "Impact depends entirely on what caller passes - function itself has no sensitive data context.",
+                "Library utility function with generic 'data' parameter - caller owns responsibility for data sensitivity decisions.",
+                "No - production utility code for Gradio file caching system."
+            ],
+            "context_needed": [
+                "callers of save_bytes_to_cache"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T12:59:04.539303",
+            "elapsed_seconds": 69.12132287025452,
+            "fp_pattern_matched": "FP-3: Library Convenience Wrapper Pattern",
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "write",
+            "source_trace": "caller \u2192 data (param) \u2192 path.write_bytes(data) (line 217)",
+            "mitigations_present": [
+                "Path(file_name).name strips directory components"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/weak-sensitive-data-hashing",
+                "message": "[Sensitive data (password)](1) is used in a hashing algorithm (SHA256) that is insecure for password hashing, since it is not a computationally expensive hash function.\n[Sensitive data (secret)](2) is used in a hashing algorithm (SHA256) that is insecure for secret hashing, since it is not a computationally expensive hash function.",
+                "file": "gradio/oauth.py",
+                "start_line": 51,
+                "end_line": 51,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "The linter incorrectly classifies this as password hashing. The code uses SHA256 to derive a session signing key from an OAuth client secret, which is already a high-entropy value. This is key derivation, not password hashing - the security concerns about computational expense don't apply when the input is already cryptographically random.",
+            "answers": [
+                "Source is OAUTH_CLIENT_SECRET - a server-side OAuth client secret, NOT a user password (line 50)",
+                "OAUTH_CLIENT_SECRET \u2192 session_secret (line 50) \u2192 .encode() \u2192 sha256().hexdigest() \u2192 secret_key (line 55)",
+                "None applicable - hash is used for key derivation format normalization, not password protection",
+                "SessionMiddleware's secret_key parameter for signing session cookies (line 55)",
+                "No attacker control - this is server-side config. Hash is for key derivation, not password storage",
+                "Input is already high-entropy OAuth secret; SHA256 is adequate for key derivation from high-entropy sources",
+                "No - this is production OAuth initialization code for Gradio Spaces"
+            ],
+            "context_needed": [
+                "caller:attach_oauth"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:00:28.413288",
+            "elapsed_seconds": 83.86825227737427,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": false,
+            "sink_type": "write",
+            "source_trace": "OAUTH_CLIENT_SECRET (config) \u2192 session_secret (line 50) \u2192 sha256 hash (line 55) \u2192 SessionMiddleware secret_key",
+            "mitigations_present": [
+                "Input is high-entropy cryptographic secret",
+                "Purpose is key derivation, not password storage",
+                "SHA256 is adequate for high-entropy key derivation"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/weak-sensitive-data-hashing",
+                "message": "[Sensitive data (password)](1) is used in a hashing algorithm (SHA256) that is insecure for password hashing, since it is not a computationally expensive hash function.",
+                "file": "gradio/processing_utils.py",
+                "start_line": 145,
+                "end_line": 145,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "CodeQL misidentifies image data as 'password' data. SHA256 is only 'weak' for password storage/authentication - it is the correct choice for cache key generation, file naming, and integrity checks. No authentication context exists here.",
+            "answers": [
+                "Q1: Source is PIL Image data from encode_pil_to_bytes(), NOT password data. CodeQL misidentifies the data type.",
+                "Q2: PIL Image \u2192 encode_pil_to_bytes() \u2192 bytes_data (line 157) \u2192 hash_bytes() \u2192 cache directory name",
+                "Q3: Image encoded to webp/other format bytes before hashing. No sanitization needed - not a security context.",
+                "Q4: Sink is cache directory path creation (line 158). NOT password storage or authentication.",
+                "Q5: No security impact - fast hashing is CORRECT for cache keys. Only password storage needs slow hashes.",
+                "Q6: Primary mitigation: this is NOT password hashing. SHA256 is appropriate for cache key generation.",
+                "Q7: Production code but for image caching, not authentication - wrong threat model."
+            ],
+            "context_needed": [
+                "caller:hash_bytes"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:01:39.964107",
+            "elapsed_seconds": 71.54273247718811,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": false,
+            "sink_type": "write",
+            "source_trace": "PIL Image \u2192 encode_pil_to_bytes() \u2192 bytes_data (line 157) \u2192 hash_bytes() (line 145) \u2192 cache_dir path (line 158)",
+            "mitigations_present": [
+                "Not password data - image caching use case",
+                "SHA256 is appropriate for cache key generation"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).",
+                "file": "gradio/components/audio.py",
+                "start_line": 315,
+                "end_line": 315,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "The payload.path value is assigned by Gradio's internal file upload machinery, not user input. Even if considered user-provided, the sink is READ-only - users can only read files they uploaded through Gradio's controlled mechanism. No write capability means no real path traversal vulnerability.",
+            "answers": [
+                "Q1: Path originates from payload.path (FileData object), NOT direct user input - assigned by Gradio's upload machinery",
+                "Q2: No os.path.join() used - only Path().suffix extraction on line ~326",
+                "Q3: No normalization in this code; handled upstream by Gradio framework",
+                "Q4: No explicit check here; trust boundary at framework upload layer",
+                "Q5: Cannot escape - payload.path is framework-assigned, not user-controlled",
+                "Q6: READ operation only - extracting file suffix and reading audio data"
+            ],
+            "context_needed": [
+                "caller:example_value"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:03:02.605488",
+            "elapsed_seconds": 82.62444353103638,
+            "fp_pattern_matched": "FP-4: READ-Only Sink Pattern (sink is reading uploaded file, not writing)",
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": false,
+            "sink_type": "read",
+            "source_trace": "Gradio upload handler \u2192 FileData.path (framework-assigned) \u2192 Path().suffix extraction \u2192 read audio file",
+            "mitigations_present": [
+                "FileData.path is framework-controlled, not user-controlled",
+                "Files uploaded through Gradio's controlled upload API",
+                "READ-only operation on already-uploaded files"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).\nThis path depends on a [user-provided value](11).\nThis path depends on a [user-provided value](12).\nThis path depends on a [user-provided value](13).\nThis path depends on a [user-provided value](14).",
+                "file": "client/python/gradio_client/client.py",
+                "start_line": 1352,
+                "end_line": 1352,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "The Path.name property extracts only the basename (final path component), which effectively sanitizes the path by stripping any directory traversal sequences or absolute paths. Since the source is server response data from a server the user explicitly chose to connect to, and the sink is constrained to writing files with sanitized names to temp/output directories, this is not an exploitable vulnerability.",
+            "answers": [
+                "Path originates from server response dict x['path'] or x['url'], not direct user input - this is client library processing server responses",
+                "No os.path.join() used; code uses Path(url_path).name which extracts only the basename",
+                "Path(url_path).name extracts basename only; dest.resolve() normalizes final path on return",
+                "No explicit check needed - .name property constrains to filename only, stripping all directory components",
+                "../' sequences and absolute paths CANNOT escape - .name extracts only final component (e.g., '../../../etc/passwd' becomes just 'passwd')",
+                "WRITE to temp_dir/filename, then MOVE to output_dir/sha/filename - both use basename only"
+            ],
+            "context_needed": [
+                "caller:_download_file"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:06:11.178841",
+            "elapsed_seconds": 188.56751990318298,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": false,
+            "sink_type": "write",
+            "source_trace": "x dict (server response) \u2192 url_path (line ~1334-1337) \u2192 Path(url_path).name (extracts basename only) \u2192 temp_dir / filename (line ~1344)",
+            "mitigations_present": [
+                "Path(url_path).name extracts only the filename component, preventing directory traversal",
+                "Files written to randomly-named temp directory (secrets.token_hex(20))",
+                "Final destination is user-configured output_dir with content-hash subdirectory"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).\nThis path depends on a [user-provided value](11).\nThis path depends on a [user-provided value](12).\nThis path depends on a [user-provided value](13).\nThis path depends on a [user-provided value](14).",
+                "file": "client/python/gradio_client/client.py",
+                "start_line": 1360,
+                "end_line": 1360,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "This is a client library where the user explicitly chooses which Gradio server to connect to. The server-provided filename is sanitized via Path().name which extracts only the base filename, preventing directory traversal. Any 'malicious' behavior from a server is the user's responsibility since they chose to trust that server.",
+            "answers": [
+                "Q1: Path originates from x['url'] or x['path'] which come from the Gradio server response - the user explicitly chose to connect to this server via Client(src='server-url').",
+                "Q2: No os.path.join() used. Code uses Path(url_path).name which extracts only the final filename component.",
+                "Q3: No explicit normalization, but Path().name inherently strips directory traversal sequences.",
+                "Q4: No explicit prefix check needed - Path().name cannot return a path with directory components.",
+                "Q5: No - Path('../../../etc/passwd').name returns just 'passwd', preventing traversal.",
+                "Q6: WRITE operation via open(..., 'wb') at line ~1362, then shutil.move() at line ~1368."
+            ],
+            "context_needed": [
+                "caller:_download_file"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:07:54.575116",
+            "elapsed_seconds": 103.38896083831787,
+            "fp_pattern_matched": "FP-3: Library Convenience Wrapper Pattern",
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": false,
+            "sink_type": "write",
+            "source_trace": "user chooses server URL \u2192 server responds with x dict \u2192 x['url']/x['path'] \u2192 url_path \u2192 Path(url_path).name (sanitized) \u2192 file write",
+            "mitigations_present": [
+                "Path().name property strips all directory components including traversal sequences",
+                "User explicitly chooses which server to trust via Client(src=...)",
+                "Files written to user-specified output_dir or temp directory"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).\nThis path depends on a [user-provided value](11).\nThis path depends on a [user-provided value](12).\nThis path depends on a [user-provided value](13).\nThis path depends on a [user-provided value](14).",
+                "file": "client/python/gradio_client/client.py",
+                "start_line": 1360,
+                "end_line": 1360,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "Path traversal is prevented by Path(url_path).name which extracts only the final path component (basename), stripping all directory information including '../' sequences. Even if server provides malicious path like '../../../etc/passwd', only 'passwd' is used as filename in a controlled directory structure.",
+            "answers": [
+                "Q1: Path originates from x['path'] or x['url'] in server response dict - lines 1337-1340. This is client library receiving data from Gradio server",
+                "Q2: No os.path.join() - uses pathlib / operator. Key: Path(url_path).name extracts only basename, line 1349, 1357",
+                "Q3: Path().name property extracts only final component (basename), effectively stripping all directory traversal sequences",
+                "Q4: No explicit prefix check needed - .name property inherently limits to single filename component in controlled directory hierarchy",
+                "Q5: No - Path().name strips all directory components. '../' becomes part of literal filename, not traversal. File written to temp_dir/<random>/<basename>",
+                "Q6: WRITE: open() at line 1349 writes downloaded content. MOVE: shutil.move() at line 1358. Flagged line 1360 is just return str(dest.resolve()) - not a file operation"
+            ],
+            "context_needed": [],
+            "iterations": 2,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:12:27.543772",
+            "elapsed_seconds": 272.95923495292664,
+            "fp_pattern_matched": "FP-3: Library Convenience Wrapper Pattern (partially - gradio_client is a client library; additionally sanitization via Path().name)",
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "write",
+            "source_trace": "x['path'] (line 1340) \u2192 url_path (line 1340) \u2192 Path(url_path).name (line 1349/1357) \u2192 sanitizes to basename only \u2192 temp_dir/basename or directory/basename",
+            "mitigations_present": [
+                "Path().name extracts only basename - strips all directory components",
+                "secrets.token_hex(20) creates unpredictable temp directory name",
+                "sha256 hash used for final directory name",
+                "File written to controlled temp location before moving to output_dir"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).\nThis path depends on a [user-provided value](11).\nThis path depends on a [user-provided value](12).\nThis path depends on a [user-provided value](13).\nThis path depends on a [user-provided value](14).",
+                "file": "client/python/gradio_client/client.py",
+                "start_line": 1361,
+                "end_line": 1361,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "The `.name` property of pathlib.Path extracts only the final filename component, effectively sanitizing any path traversal sequences or absolute paths. The 'user-provided value' is actually the server's response from a server the user intentionally connected to. CodeQL fails to recognize that Path().name is effective sanitization.",
+            "answers": [
+                "Q1: Path originates from server response dictionary `x` (x['path'] at line 1349, x['url'] at line 1345). User explicitly chooses which Gradio server to connect to - not traditional attacker input.",
+                "Q2: No os.path.join() - uses pathlib Path `/` operator. Critical: `Path(url_path).name` extracts only filename (lines 1361, 1367, 1368).",
+                "Q3: `dest.resolve()` called only at line 1369 for return value. Real sanitization is `.name` property which strips all directory components.",
+                "Q4: No explicit prefix check, but `.name` property prevents escape by extracting only the final path component regardless of input.",
+                "Q5: NO - `Path(url_path).name` strips all traversal sequences. `Path('../../../etc/passwd').name` returns just 'passwd'.",
+                "Q6: WRITE operations - creates temp_dir with random name, writes downloaded content, moves to output_dir/hash/filename."
+            ],
+            "context_needed": [
+                "caller:_download_file"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:14:14.975252",
+            "elapsed_seconds": 107.42074680328369,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": false,
+            "sink_type": "write",
+            "source_trace": "server response dict `x` (line 1345-1349) \u2192 url_path variable (line 1345/1349) \u2192 Path(url_path).name extracts filename only (line 1361) \u2192 safe path construction",
+            "mitigations_present": [
+                "Path(url_path).name extracts only the final filename component, stripping all directory traversal sequences",
+                "temp_dir uses secrets.token_hex(20) for unique unpredictable directory name",
+                "Files written to isolated temp directory before moving to hash-based output directory"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).",
+                "file": "gradio/components/file.py",
+                "start_line": 221,
+                "end_line": 221,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "The sink is READ-only metadata retrieval (stat() for file size). FP-4 pattern applies: path-traversal with read-only sink is false positive since no file content is exposed or modified. This is a framework component's postprocess method for internal file handling.",
+            "answers": [
+                "Q1: Input originates from function parameter 'value' (line 207), processed through _download_files() (line 212) - framework internal flow, not direct HTTP request",
+                "Q2: No os.path.join() used - paths used directly with Path()",
+                "Q3: No normalization - no realpath() or abspath() calls",
+                "Q4: No directory boundary validation - paths used as-is",
+                "Q5: Yes, traversal sequences or absolute paths could theoretically escape",
+                "Q6: READ-ONLY operations only: Path().name (line 219, 227) and Path().stat().st_size (line 220, 228) - metadata retrieval only"
+            ],
+            "context_needed": [
+                "caller:postprocess_callers",
+                "method:_download_files"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:15:47.925876",
+            "elapsed_seconds": 92.936767578125,
+            "fp_pattern_matched": "FP-4: READ-Only Sink Pattern",
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "read",
+            "source_trace": "value parameter (line 207) \u2192 _download_files() (line 212) \u2192 file variable (line 217) \u2192 Path(file).stat() (line 220, 228)",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).",
+                "file": "gradio/components/file.py",
+                "start_line": 230,
+                "end_line": 230,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 202603171416310df7d10c7b574025, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:16:50.870534",
+            "elapsed_seconds": 62.93911910057068,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).",
+                "file": "gradio/components/file_explorer.py",
+                "start_line": 92,
+                "end_line": 92,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 20260317141737b6604cd5691b46ee, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:18:06.428293",
+            "elapsed_seconds": 75.5344545841217,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).",
+                "file": "gradio/components/file_explorer.py",
+                "start_line": 94,
+                "end_line": 94,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 20260317141849f5c7cce7b6bb4cd7, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:19:16.355511",
+            "elapsed_seconds": 69.92666864395142,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).",
+                "file": "gradio/image_utils.py",
+                "start_line": 256,
+                "end_line": 256,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 20260317142003ae6f113826d44bd3, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:20:25.544317",
+            "elapsed_seconds": 69.18670678138733,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).",
+                "file": "gradio/image_utils.py",
+                "start_line": 353,
+                "end_line": 353,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL",
+                "function_name": "postprocess_image"
+            },
+            "verdict": "True Positive",
+            "confidence": "High",
+            "reasoning": "In a web framework context (Gradio), user-controlled file paths reaching open() without sanitization allows arbitrary file read. Unlike CLI tools where FP-4 applies, web attackers can exploit this to read sensitive server files (configs with secrets, source code, /etc/passwd). CodeQL traced 10 distinct user-provided sources to this sink.",
+            "answers": [
+                "Q1: Path originates from web request payload (ImageData.path, image_file parameter) - CodeQL traced 10 user-provided sources to this sink",
+                "Q2: No os.path.join() used - direct path construction at lines 352 and 383",
+                "Q3: No normalization performed - no realpath/abspath/resolve() calls",
+                "Q4: No base directory validation - no prefix checking against allowed directory",
+                "Q5: Yes - '../' sequences and absolute paths can escape; no sanitization present",
+                "Q6: READ operations only - open() at line 352 (read mode) and PIL.Image.open() at line 400"
+            ],
+            "context_needed": [
+                "caller:extract_svg_content callers in routes/handlers",
+                "struct:ImageData"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:23:58.484998",
+            "elapsed_seconds": 212.92838072776794,
+            "fp_pattern_matched": null,
+            "severity": "Medium",
+            "trust_boundary_crossed": true,
+            "attacker_controlled_source": true,
+            "sink_type": "read",
+            "source_trace": "web request payload \u2192 ImageData.path / image_file parameter (user-controlled) \u2192 Path() / str() conversion \u2192 open(image_file) at line 352",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).",
+                "file": "gradio/components/label.py",
+                "start_line": 140,
+                "end_line": 140,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "This is library code in Gradio's Label component. The 'value' parameter comes from application developer code (prediction function return), not directly from web request input. The operation is read-only, and per FP-4, path traversal with read-only sinks allows users to read only files they already have filesystem access to. The trust boundary is correctly at the application layer (FP-3).",
+            "answers": [
+                "Q1: Path originates from 'value' parameter of postprocess(), which is passed by application code (prediction function return value), NOT directly from web request/user input",
+                "Q2: No os.path.join() used - Path(value) used directly at line 141",
+                "Q3: No normalization performed - path used as-is",
+                "Q4: No base directory check - only .json extension and existence are checked (line 140)",
+                "Q5: Yes, '../' sequences and absolute paths could access any .json file on system",
+                "Q6: READ ONLY - Path(value).read_text() at line 141 performs only read operation"
+            ],
+            "context_needed": [
+                "prediction_function:caller_code"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:25:49.121451",
+            "elapsed_seconds": 110.59664011001587,
+            "fp_pattern_matched": "FP-3: Library Convenience Wrapper Pattern, FP-4: READ-Only Sink Pattern",
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": false,
+            "sink_type": "read",
+            "source_trace": "application prediction function \u2192 value parameter (line ~130) \u2192 Path(value) (line 141) \u2192 read_text()",
+            "mitigations_present": [
+                "File extension check (.json)",
+                "File existence check"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).",
+                "file": "gradio/components/label.py",
+                "start_line": 141,
+                "end_line": 141,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 20260317142619cd343e0d0dc247cb, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:26:35.963012",
+            "elapsed_seconds": 46.83594989776611,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).",
+                "file": "gradio/processing_utils.py",
+                "start_line": 650,
+                "end_line": 650,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 202603171427106545088db86a45fd, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:27:28.031023",
+            "elapsed_seconds": 52.051175594329834,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).",
+                "file": "gradio/processing_utils.py",
+                "start_line": 1063,
+                "end_line": 1063,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "Medium",
+            "reasoning": "The sink is a READ operation (shutil.copy2 copies FROM the path). While no path validation exists, in Gradio's architecture this utility function is called with internally-generated temp paths from file uploads, not arbitrary user-supplied strings. The 'user-provided' sources CodeQL identified likely trace to file content, not path control. FP-4 applies as this is a read-only sink where the path is managed by the framework.",
+            "answers": [
+                "Q1: video_path is a function parameter; CodeQL traced 10 user-provided sources, but in Gradio's typical flow, file uploads get Gradio-controlled temp paths",
+                "Q2: No os.path.join() used - Path(video_path).with_suffix('.mp4') and shutil.copy2(video_path, ...) use path directly",
+                "Q3: No normalization - no realpath(), abspath(), or resolve() calls",
+                "Q4: No base directory validation - no prefix checking",
+                "Q5: Yes - '../' sequences and absolute paths would work without normalization/validation",
+                "Q6: READ operation - shutil.copy2(video_path, tmp_file.name) reads from user-provided path, then processes via FFmpeg"
+            ],
+            "context_needed": [
+                "caller:convert_video_to_playable_mp4 callers in gradio/components.py or video.py"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:30:10.178070",
+            "elapsed_seconds": 161.21436738967896,
+            "fp_pattern_matched": "FP-4: READ-Only Sink Pattern",
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "read",
+            "source_trace": "video_path (parameter, line ~1059) \u2192 shutil.copy2 (line 1063)",
+            "mitigations_present": [
+                "Gradio's file upload mechanism controls temp paths in normal usage"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).",
+                "file": "gradio/routes.py",
+                "start_line": 1092,
+                "end_line": 1092,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL",
+                "function_name": "load_deep_link"
+            },
+            "verdict": "Needs More Data",
+            "confidence": "Medium",
+            "reasoning": "The visible code only validates against URLs and protocol handlers but does NOT validate against path traversal sequences. However, the complete file-serving logic is not shown. If the full code lacks path normalization + base directory check, this is a classic path traversal vulnerability allowing attackers to read arbitrary files via '../' sequences. [No additional context available]",
+            "answers": [
+                "Q1: path_or_url originates from FastAPI URL path parameter - attacker-controlled (line 1089)",
+                "Q2: Not determinable from visible code - path construction happens after line 1095",
+                "Q3: No normalization visible in the provided snippet",
+                "Q4: No base directory prefix check visible in the provided snippet",
+                "Q5: YES - '../' sequences and absolute paths are NOT blocked by the visible checks (lines 1090-1095 only block URLs/protocols)",
+                "Q6: READ operation - FileResponse/similar to serve files (function name 'file' suggests static file serving)"
+            ],
+            "context_needed": [
+                "complete function body after line 1095",
+                "how path_or_url is used to construct file path",
+                "any validation in calling route decorator"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:32:08.909729",
+            "elapsed_seconds": 118.66866421699524,
+            "fp_pattern_matched": null,
+            "severity": "High",
+            "trust_boundary_crossed": true,
+            "attacker_controlled_source": true,
+            "sink_type": "read",
+            "source_trace": "URL path parameter \u2192 path_or_url (line 1089) \u2192 [incomplete trace - need lines after 1095]",
+            "mitigations_present": [
+                "URL protocol blocking (starts_with_protocol check)",
+                "HTTP URL redirect"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).",
+                "file": "gradio/routes.py",
+                "start_line": 1092,
+                "end_line": 1092,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 202603171432341b2cd67adde44adf, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:32:43.762519",
+            "elapsed_seconds": 34.84952974319458,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).",
+                "file": "gradio/routes.py",
+                "start_line": 1130,
+                "end_line": 1130,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Needs More Data",
+            "confidence": "Medium",
+            "reasoning": "Input is attacker-controlled and crosses trust boundary, but the actual sink code (line 1130) and any path validation are not visible in the provided snippet. Cannot determine if proper sanitization exists. [No additional context available]",
+            "answers": [
+                "Q1: path_or_url is a FastAPI route parameter - directly user-controlled via URL path",
+                "Q2: Cannot determine - code not shown for line 1130",
+                "Q3: Cannot determine - no normalization visible in snippet",
+                "Q4: Cannot determine - no base directory check visible",
+                "Q5: Potentially yes - no '../' prevention visible in shown code",
+                "Q6: Cannot determine - line 1130 (sink) not in provided snippet"
+            ],
+            "context_needed": [
+                "full function body including line 1130",
+                "any path validation/sanitization logic",
+                "file operation type (read/write)"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:33:42.427163",
+            "elapsed_seconds": 58.66199445724487,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": true,
+            "attacker_controlled_source": true,
+            "sink_type": "unknown",
+            "source_trace": "URL path param \u2192 path_or_url (function param) \u2192 ??? (line 1130 not shown)",
+            "mitigations_present": [
+                "HTTP URL redirect check",
+                "Protocol prefix block"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).",
+                "file": "gradio/routes.py",
+                "start_line": 1135,
+                "end_line": 1135,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Needs More Data",
+            "confidence": "Medium",
+            "reasoning": "Requested function body was not provided (returned empty placeholder). Attacker-controlled input enters web route, but cannot verify if path traversal protection exists without seeing complete function body where path is normalized and validated. [No additional context available]",
+            "answers": [
+                "Q1: path_or_url is FastAPI route parameter - attacker-controlled from HTTP request path",
+                "Q2: Unknown - function body truncated, path construction not visible",
+                "Q3: Unknown - function body truncated, normalization not visible",
+                "Q4: Unknown - function body truncated, validation not visible",
+                "Q5: Unknown - only URL/protocol checks visible, traversal protection status unknown",
+                "Q6: Likely READ (Gradio file serving) based on function name and framework context"
+            ],
+            "context_needed": [
+                "ACTUAL full function body showing lines 1135-1170",
+                "specific sink where path_or_url is used in file operation"
+            ],
+            "iterations": 2,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:36:04.925778",
+            "elapsed_seconds": 142.49604082107544,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": true,
+            "attacker_controlled_source": true,
+            "sink_type": "open_read",
+            "source_trace": "HTTP request \u2192 path_or_url (line ~1134) \u2192 [CODE NOT SHOWN] \u2192 sink (line 1135)",
+            "mitigations_present": [
+                "HTTP URL detection + redirect",
+                "Protocol prefix detection + 403"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).",
+                "file": "gradio/routes.py",
+                "start_line": 2231,
+                "end_line": 2231,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "## Analysis of Path Injection Finding\n\n### Question 1: Where does the PATH input originate - request parameter, form field?\n\nLooking at line 2231-2232:\n- `GRADIO_WATCH_DEMO_PATH` (line 2230) - imported from `gradio.http_server`, a **module constant**, NOT user input\n- `snapshot_hash` (line 2231) - generated via `secrets.token_hex(16)`, cryptographically random, **NOT user-controlled**\n- `vibe_edit_history_dir` - appears to be from outer scope, likely a configured directory\n\nThe `body: VibeEditBo",
+            "answers": [],
+            "context_needed": [
+                "caller:vibe_edit"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:37:08.637558",
+            "elapsed_seconds": 63.693113565444946,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).",
+                "file": "gradio/routes.py",
+                "start_line": 2235,
+                "end_line": 2235,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 2026031714373581f7f7d1e9574b9e, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:37:48.536270",
+            "elapsed_seconds": 39.89149188995361,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).",
+                "file": "gradio/components/upload_button.py",
+                "start_line": 229,
+                "end_line": 229,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "The sink is purely READ-only metadata extraction (stat for size, name for basename). Per FP-4, CWE-22 path traversal with read-only sinks is FP because the attacker cannot read file contents or write to arbitrary locations - they can only see file sizes and basenames of files they already have access to.",
+            "answers": [
+                "Q1: The 'value' parameter originates from Gradio's internal framework pipeline after _download_files() preprocessing (line 222). Not directly from raw user request.",
+                "Q2: No os.path.join() used. Paths used directly via Path() constructor.",
+                "Q3: No normalization with realpath()/abspath()/resolve() occurs.",
+                "Q4: No base directory validation exists in this function.",
+                "Q5: Theoretically yes, but Gradio's upstream file handling and _download_files() preprocessing provide implicit constraints.",
+                "Q6: READ-only operations: Path().name (basename extraction) and Path().stat().st_size (metadata). No content read, no write, no delete."
+            ],
+            "context_needed": [
+                "caller:gradio_framework",
+                "method:_download_files"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:39:40.615034",
+            "elapsed_seconds": 112.01085662841797,
+            "fp_pattern_matched": "FP-4: READ-Only Sink Pattern",
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "read",
+            "source_trace": "value param (line 218) \u2192 _download_files() (line 222) \u2192 Path(file).stat() (lines 227, 234)",
+            "mitigations_present": [
+                "Upstream _download_files() preprocessing",
+                "Gradio framework file handling",
+                "Read-only operations (stat, basename)"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).",
+                "file": "gradio/components/upload_button.py",
+                "start_line": 238,
+                "end_line": 238,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "This is a classic FP-4 case: the sink is read-only (Path.stat() only reads file metadata, not contents). Additionally, in Gradio's component architecture, postprocess() handles internally-processed data from the component's lifecycle, not raw attacker input. Even if paths were attacker-controlled, the worst case is checking if a file exists or its size - no arbitrary file read/write capability.",
+            "answers": [
+                "Q1: The PATH input originates from the `value` parameter to `postprocess()` (line ~226). In Gradio's architecture, this is typically an internally managed file path from the component's state after upload processing via `_download_files()`. It is NOT raw request parameter input.",
+                "Q2: No, `os.path.join()` is NOT used in this code. Paths are used directly with `Path(file)` on lines 237-238.",
+                "Q3: No normalization (`os.path.realpath()` or `os.path.abspath()`) is performed. Paths are used as-is.",
+                "Q4: No check is performed to verify the path starts with an allowed base directory.",
+                "Q5: Yes, theoretically `../` sequences or absolute paths could access files outside intended directories, but see Q6.",
+                "Q6: FILE OPERATIONS: Only `Path(file).stat().st_size` is performed (line 238) - this is a READ-ONLY metadata operation. No write, delete, or execute operations. The code also uses `Path(file).name` which is just string parsing, not file I/O."
+            ],
+            "context_needed": [
+                "caller:postprocess"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:41:35.428525",
+            "elapsed_seconds": 114.7929162979126,
+            "fp_pattern_matched": "FP-4: READ-Only Sink Pattern (CWE-22)",
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": false,
+            "sink_type": "read",
+            "source_trace": "value parameter (line 226) \u2192 _download_files() (line 231) \u2192 Path(file).stat() (line 238)",
+            "mitigations_present": [
+                "Gradio's internal file handling manages upload paths before they reach postprocess",
+                "_download_files() preprocessing method acts as intermediary",
+                "Only metadata access (stat), not file content read or write"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).\nThis path depends on a [user-provided value](11).\nThis path depends on a [user-provided value](12).\nThis path depends on a [user-provided value](13).\nThis path depends on a [user-provided value](14).\nThis path depends on a [user-provided value](15).\nThis path depends on a [user-provided value](16).",
+                "file": "gradio/utils.py",
+                "start_line": 1276,
+                "end_line": 1276,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 20260317144203c6faccbd40564b92, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:42:14.970589",
+            "elapsed_seconds": 39.43025207519531,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).\nThis path depends on a [user-provided value](11).\nThis path depends on a [user-provided value](12).\nThis path depends on a [user-provided value](13).\nThis path depends on a [user-provided value](14).",
+                "file": "gradio/utils.py",
+                "start_line": 1339,
+                "end_line": 1339,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 202603171442412762b884b338446c, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:42:51.500633",
+            "elapsed_seconds": 36.52599573135376,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).\nThis path depends on a [user-provided value](11).\nThis path depends on a [user-provided value](12).\nThis path depends on a [user-provided value](13).\nThis path depends on a [user-provided value](14).",
+                "file": "client/python/gradio_client/utils.py",
+                "start_line": 690,
+                "end_line": 690,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 202603171443175b945da3d23a489c, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:43:30.209127",
+            "elapsed_seconds": 38.6996488571167,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).\nThis path depends on a [user-provided value](11).\nThis path depends on a [user-provided value](12).\nThis path depends on a [user-provided value](13).\nThis path depends on a [user-provided value](14).",
+                "file": "client/python/gradio_client/utils.py",
+                "start_line": 1171,
+                "end_line": 1171,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "This is a pure predicate function that checks file existence using read-only metadata operations. No file content is read or exposed - function only returns True/False. Additionally, this is a client library utility function where the trust boundary is at the application layer (FP-3).",
+            "answers": [
+                "Q1: Input 's' is a function parameter; sources unclear but this is a CLIENT library utility function",
+                "Q2: No os.path.join() used - path passed directly to Path(s)",
+                "Q3: No normalization performed with realpath() or abspath()",
+                "Q4: No base directory validation - any path accepted if exists and is_file",
+                "Q5: Yes, '../' and absolute paths would be accepted, but...",
+                "Q6: READ-ONLY metadata operations only: exists() and is_file() - no content read, no write/delete"
+            ],
+            "context_needed": [
+                "caller:is_filepath"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:44:49.689674",
+            "elapsed_seconds": 79.47846269607544,
+            "fp_pattern_matched": "FP-4: READ-Only Sink Pattern (CWE-22) - sink is exists()/is_file() which are read-only metadata queries",
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "read",
+            "source_trace": "parameter s \u2192 Path(s).exists()/is_file() (line 1171)",
+            "mitigations_present": [
+                "Function is read-only predicate with no side effects",
+                "Client library context - not server-side",
+                "No file content exposed, only boolean return"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/path-injection",
+                "message": "This path depends on a [user-provided value](1).\nThis path depends on a [user-provided value](2).\nThis path depends on a [user-provided value](3).\nThis path depends on a [user-provided value](4).\nThis path depends on a [user-provided value](5).\nThis path depends on a [user-provided value](6).\nThis path depends on a [user-provided value](7).\nThis path depends on a [user-provided value](8).\nThis path depends on a [user-provided value](9).\nThis path depends on a [user-provided value](10).\nThis path depends on a [user-provided value](11).\nThis path depends on a [user-provided value](12).\nThis path depends on a [user-provided value](13).\nThis path depends on a [user-provided value](14).",
+                "file": "client/python/gradio_client/utils.py",
+                "start_line": 1171,
+                "end_line": 1171,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 2026031714450767f23bc8c3104a0f, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:45:19.373134",
+            "elapsed_seconds": 29.681708574295044,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/jinja2/autoescape-false",
+                "message": "Using jinja2 templates with autoescape=False can potentially allow XSS attacks.",
+                "file": "gradio/component_meta.py",
+                "start_line": 85,
+                "end_line": 85,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 202603171445511e7d4f47c4914974, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:46:03.506101",
+            "elapsed_seconds": 44.07032823562622,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/jinja2/autoescape-false",
+                "message": "Using jinja2 templates with autoescape=False can potentially allow XSS attacks.",
+                "file": "gradio/events.py",
+                "start_line": 584,
+                "end_line": 584,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "While autoescape=False is technically true, this is a false positive because the rendered template output is assigned to a Python __doc__ attribute (docstring) which is never rendered as HTML to end users. XSS requires an HTML execution context, which does not exist here. Additionally, both the template content and the component parameter are internal framework values controlled by developers, not attacker-controlled runtime input.",
+            "answers": [
+                "Q1: Source is self.listener.__doc__ (internal docstring) and component parameter (internal string), both developer-controlled",
+                "Q2: self.listener.__doc__ \u2192 Template() \u2192 .render(component=component) \u2192 doc \u2192 self.listener.__doc__",
+                "Q3: No sanitization; autoescape=False is default",
+                "Q4: Sink is self.listener.__doc__ (Python docstring attribute), NOT HTML output",
+                "Q5: No XSS impact - docstrings are not rendered as HTML to end users",
+                "Q6: Internal library code, no trust boundary crossed, no HTML rendering context",
+                "Q7: Production library code but for internal documentation generation only"
+            ],
+            "context_needed": [
+                "caller:set_doc"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:47:13.895670",
+            "elapsed_seconds": 70.35776615142822,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": false,
+            "sink_type": "read",
+            "source_trace": "internal docstring (line 583) \u2192 Template.render() (line 584) \u2192 __doc__ attribute (line 585)",
+            "mitigations_present": [
+                "No HTML rendering context - output is Python docstring attribute",
+                "Both inputs are developer-controlled at build time, not runtime",
+                "Internal framework code for documentation generation"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/request-without-cert-validation",
+                "message": "This request may run without certificate validation because [it is disabled](1) by [this value](2).",
+                "file": "client/python/gradio_client/client.py",
+                "start_line": 597,
+                "end_line": 603,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 202603171447366de67c0924c64180, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:47:44.490587",
+            "elapsed_seconds": 30.580904483795166,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/request-without-cert-validation",
+                "message": "This request may run without certificate validation because [it is disabled](1) by [this value](2).",
+                "file": "client/python/gradio_client/client.py",
+                "start_line": 609,
+                "end_line": 619,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "This is a client library where SSL verification is a user-configurable option. The developer integrating the library decides whether to enable/disable certificate validation based on their deployment needs (self-signed certs, testing, corporate proxies). This is not attacker-controlled input - it's a legitimate API design pattern used by requests, httpx, and other HTTP libraries.",
+            "answers": [
+                "Source: self.ssl_verify instance attribute, set by library user during Client instantiation, not attacker-controlled",
+                "Flow: Client.__init__(ssl_verify=...) \u2192 self.ssl_verify \u2192 httpx.get(verify=self.ssl_verify) at line 609",
+                "No validation - boolean or path passed directly (by design - it's a configuration option)",
+                "Sink: httpx.get() at line 609, verify parameter controls SSL certificate validation",
+                "Impact would be MITM if attacker controlled it, but they don't - developer controls this setting",
+                "This is a client library exposing SSL config to users - legitimate for self-signed certs, testing, corporate proxies",
+                "Production code, not test/debug/dead code"
+            ],
+            "context_needed": [
+                "Client.__init__ to confirm ssl_verify default value"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:49:12.150360",
+            "elapsed_seconds": 87.65863156318665,
+            "fp_pattern_matched": "FP-3: Library Convenience Wrapper Pattern",
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": false,
+            "sink_type": "read",
+            "source_trace": "Developer-provided config \u2192 self.ssl_verify (init) \u2192 verify parameter (line 609)",
+            "mitigations_present": [
+                "Library defaults to secure (ssl_verify=True assumed)",
+                "User explicitly controls setting",
+                "Standard library pattern (requests, httpx both support this)"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/request-without-cert-validation",
+                "message": "This request may run without certificate validation because [it is disabled](1) by [this value](2).",
+                "file": "client/python/gradio_client/client.py",
+                "start_line": 918,
+                "end_line": 923,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Needs More Data",
+            "confidence": "Medium",
+            "reasoning": "The finding indicates certificate validation is disabled, but the source of verify=False is not shown. For a client library like gradio_client, allowing users to disable cert verification for development (self-signed certs) is a legitimate feature. If hardcoded to verify=False \u2192 TP. If user-configurable \u2192 FP (user controls their security posture). [No additional context available]",
+            "answers": [
+                "Q1: Source appears to be a configuration value controlling verify=False, but actual source not shown in provided context",
+                "Q2: self.src + utils.LOGIN_URL \u2192 httpx.post() at line 918, verify setting flow not visible",
+                "Q3: URL construction uses urljoin properly; no validation issues visible in snippet",
+                "Q4: Sink is httpx.post() transmitting credentials to server without cert verification",
+                "Q5: MITM could intercept username/password credentials and session cookies",
+                "Q6: This is a client library - users may legitimately disable cert verification for development servers with self-signed certs",
+                "Q7: Production library code in client.py, not test/debug code"
+            ],
+            "context_needed": [
+                "httpx client initialization",
+                "Client.__init__ verify parameter",
+                "location (1) and (2) from CodeQL message"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:51:15.165503",
+            "elapsed_seconds": 123.00296449661255,
+            "fp_pattern_matched": null,
+            "severity": "Medium",
+            "trust_boundary_crossed": "unknown",
+            "attacker_controlled_source": false,
+            "sink_type": "write",
+            "source_trace": "Cannot trace - verify=False source location not provided in context",
+            "mitigations_present": [
+                "Client library design allows user control of security settings"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/request-without-cert-validation",
+                "message": "This request may run without certificate validation because [it is disabled](1) by [this value](2).",
+                "file": "client/python/gradio_client/client.py",
+                "start_line": 936,
+                "end_line": 942,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "False Positive",
+            "confidence": "High",
+            "reasoning": "The ssl_verify parameter is a developer-controlled configuration option in a client library, not attacker-controlled input. Developers intentionally set this to False when connecting to servers with self-signed certificates. This is standard library design (like requests.verify=False), not a vulnerability.",
+            "answers": [
+                "Source is self.ssl_verify, set by developer during Client instantiation in __init__",
+                "Developer code \u2192 self.ssl_verify (in __init__) \u2192 httpx.get(verify=self.ssl_verify) at line 936",
+                "No validation - this is intentional as ssl_verify is a configuration parameter",
+                "Sink is httpx.get() at line 936 where verify parameter controls SSL certificate validation",
+                "If attacker controlled this: MITM attacks possible. But attacker does NOT control it - the developer using the library does",
+                "Library design pattern: this is an intentional configuration option for the library consumer, not a security flaw",
+                "No - this is production code in the main client library"
+            ],
+            "context_needed": [
+                "caller:_get_config"
+            ],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:52:47.973571",
+            "elapsed_seconds": 92.79612731933594,
+            "fp_pattern_matched": "FP-3: Library Convenience Wrapper Pattern",
+            "severity": "N/A",
+            "trust_boundary_crossed": false,
+            "attacker_controlled_source": false,
+            "sink_type": "read",
+            "source_trace": "Developer config \u2192 self.ssl_verify \u2192 httpx.get(verify=...) at line 936",
+            "mitigations_present": [
+                "Library consumer controls ssl_verify setting",
+                "This is intentional API design"
+            ]
+        },
+        {
+            "finding": {
+                "rule_id": "py/request-without-cert-validation",
+                "message": "This request may run without certificate validation because [it is disabled](1) by [this value](2).",
+                "file": "client/python/gradio_client/client.py",
+                "start_line": 964,
+                "end_line": 970,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 2026031714531725fa66e20ae74942, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:53:30.188137",
+            "elapsed_seconds": 42.20077562332153,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/request-without-cert-validation",
+                "message": "This request may run without certificate validation because [it is disabled](1).",
+                "file": "gradio/networking.py",
+                "start_line": 68,
+                "end_line": 68,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 20260317145352f6f21fe4b8f24387, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:54:08.116166",
+            "elapsed_seconds": 37.90996956825256,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        },
+        {
+            "finding": {
+                "rule_id": "py/request-without-cert-validation",
+                "message": "This request may run without certificate validation because [it is disabled](1).",
+                "file": "scripts/upload_website_demos.py",
+                "start_line": 42,
+                "end_line": 42,
+                "repo_name": "gradio",
+                "lang": "python",
+                "sarif_path": "/home/trieudai/VulnHunterX/output/python/gradio/gradio.sarif",
+                "tool": "CodeQL"
+            },
+            "verdict": "Error",
+            "confidence": "Low",
+            "reasoning": "LLM call failed: litellm.InternalServerError: InternalServerError: OpenAIException - Network error, error id: 20260317145437e63e968f4acf4647, please contact customer service",
+            "answers": [],
+            "context_needed": [],
+            "iterations": 1,
+            "model": "glm-5",
+            "timestamp": "2026-03-17T13:54:51.800903",
+            "elapsed_seconds": 43.657663345336914,
+            "fp_pattern_matched": null,
+            "severity": "N/A",
+            "trust_boundary_crossed": null,
+            "attacker_controlled_source": "unknown",
+            "sink_type": "unknown",
+            "source_trace": "",
+            "mitigations_present": []
+        }
+    ]
+}

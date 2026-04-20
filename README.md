@@ -147,32 +147,34 @@ All commands run from the **project root** (`/path/to/FuzzGen`).
 ### Step 1 — Oracle Reasoner
 
 ```bash
+# Process a single finding
 python src/run_stage1.py \
-  --finding output/python/superset/verification_result/findings.json
+  --finding output/python/superset/verifycation_result/findings.json
 
-# With debug log
+# Process a batch summary (auto-loops over findings, skips 'Error')
+# Options for --verdict: TP, NMD, FP, all
 python src/run_stage1.py \
-  --finding output/python/superset/verifycation_result/findings.json \
-  --log-file stage1_debug.log
+  --finding output/python/superset/verifycation_result/summary.json \
+  --verdict TP
 ```
 
-Output: `output/python/superset/verification_result/oracle_spec.json`
+Output: `output/python/superset/verifycation_result/{id}_oracle_spec.json`
 
 ### Step 2 — Harness Generator
 
 ```bash
-python src/run_stage2.py \
-  --finding output/python/superset/verification_result/findings.json \
-  --spec    output/python/superset/verification_result/oracle_spec.json
-
-# With debug log
+# Process a single finding (requires explicit --spec context)
 python src/run_stage2.py \
   --finding output/python/superset/verifycation_result/findings.json \
-  --spec    output/python/superset/verifycation_result/oracle_spec.json \
-  --log-file stage2_debug.log
+  --spec    output/python/superset/verifycation_result/oracle_spec.json
+
+# Process a batch summary (auto-locates the corresponding oracle specs)
+python src/run_stage2.py \
+  --finding output/python/superset/verifycation_result/summary.json \
+  --verdict TP
 ```
 
-Output: `output/python/superset/verification/harness_py_ssrf.py`
+Output: `output/python/superset/verification/{id}_harness_{rule_id}.py`
 
 ### Step 3 — Run Atheris
 
@@ -181,14 +183,14 @@ Output: `output/python/superset/verification/harness_py_ssrf.py`
 export PYTHONPATH="/path/to/FuzzGen/repos/python/superset:$PYTHONPATH"
 cd repos/python/superset && pip install -r requirements.txt && cd -
 
-# Run fuzzer
+# Run fuzzer (example matching finding id=0)
 mkdir -p corpus/
-python output/python/superset/verification/harness_py_ssrf.py \
+python output/python/superset/verification/0_harness_py_ssrf.py \
   corpus/ \
   -max_total_time=300
 
 # Or with fixed run count
-python output/python/superset/verification/harness_py_ssrf.py \
+python output/python/superset/verification/0_harness_py_ssrf.py \
   corpus/ \
   -runs=50000
 ```
@@ -247,16 +249,17 @@ Detection is done via AST analysis of the function body (`signature_builder.py`)
 output/
 └── python/
     └── {repo}/
-        └── verification_result/
-            ├── findings.json
-            └── oracle_spec.json     ← Stage 1 output
+        └── verifycation_result/
+            ├── findings.json        # Single mode input
+            ├── summary.json         # Batch mode input
+            └── {id}_oracle_spec.json    ← Stage 1 output
 output/
 └── python/
     └── {repo}/
         └── verification/
-            ├── harness_{rule_id}.py  ← Stage 2 output
+            ├── {id}_harness_{rule_id}.py   ← Stage 2 output
             └── corpus/
-                └── {rule_id}/        ← Seed corpus (if fuzz_guidance provided)
+                └── {id}_{rule_id}/        ← Seed corpus (if fuzz_guidance provided)
                     ├── seed_000
                     └── seed_001
 ```

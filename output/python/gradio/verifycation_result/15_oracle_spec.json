@@ -1,0 +1,58 @@
+{
+  "monitor": {
+    "strategy": "patch_call",
+    "patch_target": "gradio.image_utils.open",
+    "target_arg_index": 0,
+    "target_arg_name": null,
+    "capture_what": "The file path argument passed to open() at the sink, constructed from user-provided value/format parameters",
+    "additional_imports": [
+      "re",
+      "os"
+    ]
+  },
+  "oracle_check": {
+    "condition_description": "The file path passed to open() contains path traversal sequences (../) or absolute paths that escape the intended cache_dir, confirming path injection exploitation",
+    "trigger_patterns": [
+      "\\.\\./",
+      "\\.\\.[/\\\\]",
+      "^/(?!tmp|var/tmp)[a-zA-Z]",
+      "/etc/",
+      "/proc/",
+      "/root/",
+      "\\.\\.%2[fF]",
+      "(?:^|/)\\.\\.(?:/|$)"
+    ],
+    "raise_type": "RuntimeError",
+    "raise_message_template": "PATH_INJECTION: Tainted path traversal payload reached open() sink — captured={captured} pattern={matched_pattern}"
+  },
+  "fuzz_guidance": {
+    "seed_corpus": [
+      "../../etc/passwd",
+      "../../../root/.ssh/id_rsa",
+      "/etc/shadow",
+      "..%2F..%2Fetc%2Fpasswd",
+      "....//....//etc/passwd",
+      "../cache/../../../etc/hosts"
+    ],
+    "skip_condition": "not isinstance(value, (str, bytes)) or len(value) == 0"
+  },
+  "_meta": {
+    "function": "postprocess_image",
+    "file": "gradio/image_utils.py",
+    "input_strategy": "direct_params",
+    "function_signature": "def postprocess_image(format: str, value: BinaryExpr, cache_dir: str, watermark: BinaryExpr)",
+    "tainted_params": [
+      {
+        "name": "value",
+        "index": 1,
+        "type": "BinaryExpr"
+      },
+      {
+        "name": "format",
+        "index": 0,
+        "type": "str"
+      }
+    ],
+    "model": "anthropic/claude-sonnet-4-6"
+  }
+}

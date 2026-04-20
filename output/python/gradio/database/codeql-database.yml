@@ -1,0 +1,11 @@
+---
+sourceLocationPrefix: /home/caterpie/ProjectFzz/VulnHunterX-main/repos/python/gradio
+baselineLinesOfCode: 94190
+unicodeNewlines: false
+columnKind: utf32
+primaryLanguage: python
+creationMetadata:
+  sha: 59421d13fbefb493fc5d0b4c5fc48ff30ebb3ef3
+  cliVersion: 2.16.0
+  creationTime: 2026-04-01T08:27:34.288595987Z
+finalised: true

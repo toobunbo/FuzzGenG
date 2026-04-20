@@ -9,4 +9,4 @@ prompts_dir: "src/prompts"
 signatures_csv: "output/{lang}/{repo}/context/signatures_function.csv"
 functions_csv:  "output/{lang}/{repo}/context/functions.csv"
 
-oracle_spec_out: "output/{lang}/{repo}/verifycation_result/oracle_spec.json"
+oracle_spec_out: "output/{lang}/{repo}/verifycation_result/{id}_oracle_spec.json"

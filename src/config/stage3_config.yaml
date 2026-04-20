@@ -1,0 +1,22 @@
+# Stage 3: Extract Configuration
+
+codeql:
+  path: "codeql"
+  db_base: "output/{lang}/{repo}/database"
+  timeout_query: 120
+  timeout_decode: 60
+
+queries:
+  dir: "src/queries/python"
+  files:
+    - decorators.ql
+    - init_signatures.ql
+    - callee_return_types.ql
+    - caller_chains.ql
+
+output:
+  context_dir: "output/{lang}/{repo}/context"
+
+repo:
+  root: "repos/{lang}/{repo}"
+  functions_csv: "output/{lang}/{repo}/context/functions.csv"

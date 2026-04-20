@@ -1,0 +1,4 @@
+name: fuzzgen/python-functions
+version: 0.0.1
+dependencies:
+  codeql/python-all: "*"

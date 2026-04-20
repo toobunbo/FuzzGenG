@@ -1,0 +1,12 @@
+model: "ollama/deepseek-r1:7b"
+
+temperature: 0.0    # hoàn toàn deterministic
+max_tokens: 4096    # đủ cho oracle_spec phức tạp
+timeout: 180
+
+prompts_dir: "src/prompts"
+
+signatures_csv: "output/{lang}/{repo}/context/signatures_function.csv"
+functions_csv:  "output/{lang}/{repo}/context/functions.csv"
+
+oracle_spec_out: "output/{lang}/{repo}/verifycation_result/oracle_spec.json"

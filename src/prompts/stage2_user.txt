@@ -1,0 +1,4 @@
+Complete the following partial Atheris harness by filling in the TestOneInput body.
+Output the complete Python script only. No markdown, no explanation.
+
+{skeleton}

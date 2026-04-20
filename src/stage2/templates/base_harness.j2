@@ -1,0 +1,138 @@
+# AUTO-GENERATED ATHERIS HARNESS
+# rule_id  : {{ rule_id }}
+# function : {{ function_name }}
+# file     : {{ file_path }}
+# ================================================================
+import atheris
+import sys
+import re
+import os
+{% if monitor_strategy == "patch_call" %}
+from unittest.mock import patch, MagicMock
+{% endif %}
+{% for imp in extra_imports %}
+{{ imp }}
+{% endfor %}
+
+with atheris.instrument_imports():
+{% for stmt in import_stmts %}
+    {{ stmt }}
+{% endfor %}
+
+# === FIXED CONTRACTS (DO NOT MODIFY) ===
+_COMPILED_PATTERNS = [
+{% for p in trigger_patterns %}
+    re.compile({{ p | tojson }}, re.IGNORECASE),
+{% endfor %}
+]
+_RAISE_MESSAGE  = {{ raise_message | tojson }}
+_TAINTED_PARAMS = {{ tainted_params | tojson }}
+# ========================================
+
+# === ORACLE CONTEXT ===
+# strategy         : {{ monitor_strategy }}
+# patch_target     : {{ patch_target }}
+# target_arg_index : {{ target_arg_index }}
+# target_arg_name  : {{ target_arg_name }}
+# input_strategy   : {{ input_strategy }}
+# signature        : {{ function_signature }}
+# condition        : {{ condition_desc }}
+# capture_what     : {{ capture_what }}
+# skip_hint        : {{ skip_condition }}
+# ========================================
+
+{% if monitor_strategy == "patch_call" %}
+# === PATCH_CALL SKELETON ===
+# 1. INPUT GENERATION
+#    - Generate inputs for tainted params using FuzzedDataProvider.
+#    - For a SINGLE str param: consume ALL remaining bytes as one string:
+#        text = fdp.ConsumeUnicodeNoSurrogates(len(data))
+#    - For MULTIPLE params: split buffer proportionally with ConsumeIntInRange,
+#      then consume each part — do NOT use ConsumeIntInRange to pick a seed index.
+#    - DO NOT embed a seed list inside TestOneInput or use ConsumeBool() to
+#      select from a hardcoded list — this breaks coverage-guided mutation.
+#      Seeds are managed externally in _SEED_CORPUS and written to disk at startup.
+#
+# 2. SKIP CONDITION
+#    - Apply skip_hint early, return immediately if not met.
+#
+# 3. MOCK SETUP
+#    - Patch `{{ patch_target }}` using `with patch(...) as mock_get:`.
+#    - Return a realistic MagicMock so the function continues past the patched call.
+#
+# 4. ORACLE CHECK
+#    - After the call, iterate mock_get.call_args_list.
+#    - For each call: check call.args[{{ target_arg_index }}] first,
+#      fall back to call.kwargs.get("{{ target_arg_name }}").
+#    - Match against every pattern in _COMPILED_PATTERNS.
+#    - On match → raise RuntimeError(_RAISE_MESSAGE)
+#
+# 5. EXCEPTION HANDLING
+#    - except RuntimeError: raise   → never swallow oracle signals
+#    - except Exception:    return  → only around the target function call
+# ==========================================
+
+{% elif monitor_strategy == "inspect_return" %}
+# === INSPECT_RETURN SKELETON ===
+# 1. INPUT GENERATION
+#    - Generate inputs for tainted params using FuzzedDataProvider.
+#    - For a SINGLE str param: consume ALL remaining bytes as one string:
+#        svg_input = fdp.ConsumeUnicodeNoSurrogates(len(data))
+#    - For MULTIPLE params: split buffer proportionally with ConsumeIntInRange,
+#      then consume each part — do NOT use ConsumeIntInRange to pick a seed index.
+#    - DO NOT embed a seed list inside TestOneInput or use ConsumeBool() to
+#      select from a hardcoded list — this breaks coverage-guided mutation.
+#      Seeds are managed externally in _SEED_CORPUS and written to disk at startup.
+#
+# 2. SKIP CONDITION
+#    - Apply skip_hint early, return immediately if not met.
+#
+# 3. FUNCTION CALL
+#    - No mocking needed. Call target function directly.
+#    - Wrap in try/except Exception: return — return early if it raises.
+#    - except RuntimeError: raise must come BEFORE except Exception.
+#
+# 4. RETURN VALUE HANDLING
+#    - If return value is None or not str → return early.
+#    - captured = return value (per capture_what: {{ capture_what }})
+#
+# 5. ORACLE CHECK  ← MUST be OUTSIDE the try/except above
+#    - Match captured against every pattern in _COMPILED_PATTERNS.
+#    - On match → raise RuntimeError(_RAISE_MESSAGE)
+#
+# 6. EXCEPTION HANDLING
+#    - except RuntimeError: raise   → never swallow oracle signals
+#    - except Exception:    return  → only around the function call
+# ==========================================
+{% endif %}
+
+def TestOneInput(data):
+    fdp = atheris.FuzzedDataProvider(data)
+    # [FILL HERE — follow the skeleton above]
+
+
+# === SEED CORPUS — bypass-oriented, derived from trigger_patterns ===
+# LLM: populate _SEED_CORPUS with entries designed to SURVIVE the filter,
+# not just trigger it. Cover: mixed case, whitespace injection, unicode
+# homoglyphs, double encoding, tag nesting, attribute abuse.
+_SEED_CORPUS = [
+    # [FILL HERE — at least 6 bypass-attempt strings]
+]
+
+
+if __name__ == "__main__":
+    # Export seed corpus to disk so libFuzzer can mutate raw bytes directly.
+    # This preserves coverage-guided mutation — fuzzer mutates content, not index.
+    _CORPUS_DIR = os.path.join(os.path.dirname(__file__), "fuzz_corpus")
+    os.makedirs(_CORPUS_DIR, exist_ok=True)
+    for _i, _seed in enumerate(_SEED_CORPUS):
+        _seed_path = os.path.join(_CORPUS_DIR, f"seed_{_i:03d}")
+        if not os.path.exists(_seed_path):
+            with open(_seed_path, "wb") as _f:
+                _f.write(_seed.encode("utf-8"))
+
+    if _CORPUS_DIR not in sys.argv:
+        sys.argv.append(_CORPUS_DIR)
+
+    atheris.Setup(sys.argv, TestOneInput)
+    atheris.Fuzz()

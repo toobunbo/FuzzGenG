@@ -66,7 +66,12 @@ if __name__ == "__main__":
             logging.info(f"\n{'='*50}\nProcessing Finding {idx}: {f.get('rule_id')} (Verdict: {v})\n{'='*50}")
             tmp = tempfile.mktemp(suffix=".json")
             with open(tmp, "w", encoding="utf-8") as tf:
-                json.dump({"finding": f}, tf, ensure_ascii=False)
+                payload = {"finding": f}
+                if "answers" in item:
+                    payload["answers"] = item["answers"]
+                if "reasoning" in item:
+                    payload["reasoning"] = item["reasoning"]
+                json.dump(payload, tf, ensure_ascii=False)
                 
             try:
                 run(tmp, args.config)

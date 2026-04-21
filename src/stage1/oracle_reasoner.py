@@ -35,8 +35,10 @@ def run(finding_path: str, config_path: str = "src/config/stage1_config.yaml") -
     logging.info(f"[Stage1] signature : {sig}")
     logging.info(f"[Stage1] strategy  : {strategy}")
 
+    answers = finding_full.get("answers")
+
     sys_p  = load_system_prompt(config["prompts_dir"])
-    user_p = build_user_prompt(finding_full, sig, strategy, config["prompts_dir"])
+    user_p = build_user_prompt(finding_full, sig, strategy, config["prompts_dir"], answers)
 
     logging.info(f"[Stage1] calling   : {config['model']} ...")
     raw  = call_llm(sys_p, user_p, config["model"],

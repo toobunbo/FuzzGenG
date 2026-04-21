@@ -4,37 +4,38 @@
     "patch_target": "gradio.image_utils.requests.get",
     "target_arg_index": 0,
     "target_arg_name": "url",
-    "capture_what": "The full URL argument passed to requests.get, which is derived from the user-supplied image_file parameter",
+    "capture_what": "The full URL argument passed to the HTTP request sink at line 252",
     "additional_imports": [
-      "requests"
+      "re"
     ]
   },
   "oracle_check": {
-    "condition_description": "The URL passed to requests.get contains an attacker-controlled scheme and host, specifically targeting internal/private IP addresses or localhost, confirming full SSRF with no URL validation",
+    "condition_description": "The URL passed to the HTTP request sink is fully controlled by the user-supplied image_file parameter, pointing to internal/arbitrary hosts (SSRF confirmed when scheme+host in URL matches internal or attacker-controlled destinations)",
     "trigger_patterns": [
       "https?://169\\.254\\.169\\.254",
       "https?://127\\.0\\.0\\.1",
-      "https?://localhost",
       "https?://0\\.0\\.0\\.0",
-      "https?://10\\.\\d+\\.\\d+\\.\\d+",
-      "https?://192\\.168\\.\\d+\\.\\d+",
-      "https?://172\\.(1[6-9]|2[0-9]|3[01])\\.\\d+\\.\\d+",
-      "https?://[^/]*@",
-      "https?://\\[::1\\]"
+      "https?://\\[::1\\]",
+      "https?://localhost",
+      "https?://192\\.168\\.",
+      "https?://10\\.",
+      "https?://172\\.(1[6-9]|2[0-9]|3[01])\\.",
+      "https?://[a-zA-Z0-9\\-\\.]+\\.[a-zA-Z]{2,}",
+      "file://"
     ],
     "raise_type": "RuntimeError",
-    "raise_message_template": "PY/FULL-SSRF: Full SSRF detected in extract_svg_content — requests.get received attacker-controlled URL — captured={captured} pattern={matched_pattern}"
+    "raise_message_template": "PY/FULL-SSRF: Full URL controlled by user-supplied image_file reached HTTP request sink — captured={captured} pattern={matched_pattern}"
   },
   "fuzz_guidance": {
     "seed_corpus": [
       "http://169.254.169.254/latest/meta-data/",
       "http://127.0.0.1:8080/admin",
-      "http://localhost/internal",
-      "http://192.168.1.1/config",
-      "http://0.0.0.0/secret",
-      "http://[::1]/private"
+      "http://192.168.1.1/",
+      "http://0.0.0.0/etc/passwd",
+      "https://attacker.example.com/malicious",
+      "http://[::1]/internal"
     ],
-    "skip_condition": "not (isinstance(image_file, str) and image_file.startswith(('http://', 'https://')))"
+    "skip_condition": "not (isinstance(image_file, str) and (image_file.startswith('http://') or image_file.startswith('https://') or image_file.startswith('file://')))"
   },
   "_meta": {
     "function": "extract_svg_content",

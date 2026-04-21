@@ -18,16 +18,30 @@ or filter has been bypassed — the oracle fires.
 ### TestOneInput — Required Logic
 
 1. INPUT GENERATION
-   - Use FuzzedDataProvider to generate inputs for all tainted params.
-   - For a SINGLE str param: consume ALL remaining bytes as one string:
-       text = fdp.ConsumeUnicodeNoSurrogates(len(data))
-   - For MULTIPLE str params: split the buffer proportionally using
-     ConsumeIntInRange to determine each chunk size, then consume each chunk —
-     this is the ONLY acceptable use of ConsumeIntInRange in TestOneInput.
-   - Use ConsumeBytes for bytes-typed params.
-   - FORBIDDEN: Do NOT use ConsumeBool() or ConsumeIntInRange() to select from
-     a hardcoded list inside TestOneInput. This breaks coverage-guided mutation
-     by preventing the fuzzer from mutating actual payload content.
+   - Use FuzzedDataProvider to generate inputs for all tainted params based on
+     the function signature.
+
+   - Type mapping:
+       str   → ConsumeString(...)  [alias of ConsumeUnicode in Python 3]
+       bytes → ConsumeBytes(...)
+       int   → ConsumeInt(...) or ConsumeIntInRange(...)
+       float → ConsumeFloat() or ConsumeFloatInRange(...)
+       bool  → ConsumeBool()
+
+   - Buffer allocation strategy (inferred from signature):
+       - SINGLE str/bytes param → consume ALL remaining bytes:
+           param = fdp.ConsumeString(len(data))
+       - MULTIPLE params → split the buffer proportionally by param count.
+         For str/bytes params, divide remaining bytes evenly; consume the
+         last str/bytes param with remaining bytes. Fixed-size types (int,
+         float, bool) consume their natural byte width first, then split
+         the remainder among str/bytes params.
+       - FORBIDDEN: Do NOT use ConsumeIntInRange() to select a strategy
+         index or branch — this prevents the fuzzer from mutating payload.
+
+   - Always include a seed corpus (at least 6 entries) derived from
+     trigger_patterns and condition_desc. Mix seeds with fuzz-generated
+     inputs using ConsumeBool().
 
 2. SKIP CONDITION
    - Apply the skip_hint early in TestOneInput.

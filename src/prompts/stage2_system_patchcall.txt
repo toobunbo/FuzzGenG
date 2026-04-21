@@ -26,13 +26,31 @@ corpus entry into a false positive regardless of whether the vulnerability exist
 ### TestOneInput — Required Logic
 
 1. INPUT GENERATION
-   - Use FuzzedDataProvider to generate inputs for all tainted params.
-   - Use ConsumeUnicodeNoSurrogates for str types, ConsumeBytes for bytes.
-   - Split the fuzz buffer across params proportionally — do NOT use ConsumeIntInRange
-     to pick a single strategy index.
-   - Always include a seed corpus (at least 6 entries) derived from trigger_patterns
-     and condition_desc. Mix seeds with fuzz-generated inputs using ConsumeBool().
+   - Use FuzzedDataProvider to generate inputs for all tainted params based on
+     the function signature.
 
+   - Type mapping:
+       str   → ConsumeString(...)  [alias of ConsumeUnicode in Python 3]
+       bytes → ConsumeBytes(...)
+       int   → ConsumeInt(...) or ConsumeIntInRange(...)
+       float → ConsumeFloat() or ConsumeFloatInRange(...)
+       bool  → ConsumeBool()
+
+   - Buffer allocation strategy (inferred from signature):
+       - SINGLE str/bytes param → consume ALL remaining bytes:
+           param = fdp.ConsumeString(len(data))
+       - MULTIPLE params → split the buffer proportionally by param count.
+         For str/bytes params, divide remaining bytes evenly; consume the
+         last str/bytes param with remaining bytes. Fixed-size types (int,
+         float, bool) consume their natural byte width first, then split
+         the remainder among str/bytes params.
+       - FORBIDDEN: Do NOT use ConsumeIntInRange() to select a strategy
+         index or branch — this prevents the fuzzer from mutating payload.
+
+   - Always include a seed corpus (at least 6 entries) derived from
+     trigger_patterns and condition_desc. Mix seeds with fuzz-generated
+     inputs using ConsumeBool().
+     
 2. SKIP CONDITION
    - Apply the skip_hint early in TestOneInput.
    - If input does not meet minimum criteria, return immediately.

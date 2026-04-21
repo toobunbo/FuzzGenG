@@ -2,6 +2,10 @@
 
 {finding_json}
 
+## Answers (pre-traced data flow)
+
+{answers}
+
 ## Target Function Signature
 
 {function_signature}

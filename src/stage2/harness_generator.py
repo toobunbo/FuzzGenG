@@ -63,16 +63,14 @@ def run(finding_path: str, spec_path: str,
     validate_harness(code)
 
     # 5. Write harness output
-    out_path = Path(
-        config["harness_out"].format(lang=lang, repo=repo, rule_id=rule_id, id=finding_id)
-    )
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(code, encoding="utf-8")
+    out = Path(config["harness_out"].format(lang=lang, repo=repo, id=finding_id, rule_id=rule_id))
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(code, encoding="utf-8")
 
-    # 6. Write seed corpus                                 # ← thêm
+    # 6. Write seed corpus
+    corpus_dir = out.parent / "corpus"
     seed_corpus = spec.get("fuzz_guidance", {}).get("seed_corpus", [])
     if seed_corpus:
-        corpus_dir = out_path.parent / "corpus" / f"{finding_id}_{rule_id}"
         corpus_dir.mkdir(parents=True, exist_ok=True)
         for i, seed in enumerate(seed_corpus):
             (corpus_dir / f"seed_{i:03d}").write_bytes(

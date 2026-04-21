@@ -82,7 +82,8 @@ if __name__ == "__main__":
                 json.dump({"finding": f}, tf, ensure_ascii=False)
                 
             try:
-                spec_path = Path(c1["oracle_spec_out"].format(lang=f.get("lang"), repo=f.get("repo_name"), id=f["id"]))
+                rule_id = f.get("rule_id", "unknown").replace("/", "_")
+                spec_path = Path(c1["oracle_spec_out"].format(lang=f.get("lang"), repo=f.get("repo_name"), id=f["id"], rule_id=rule_id))
                 if not spec_path.exists():
                     raise FileNotFoundError(f"Oracle spec not generated at {spec_path}")
                 out = run(tmp, str(spec_path), args.config)

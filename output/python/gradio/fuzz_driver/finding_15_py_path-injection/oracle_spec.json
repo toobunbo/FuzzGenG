@@ -1,0 +1,57 @@
+{
+  "monitor": {
+    "strategy": "patch_call",
+    "patch_target": "builtins.open",
+    "target_arg_index": 0,
+    "target_arg_name": "file",
+    "capture_what": "the file path argument passed to open(), revealing path traversal",
+    "additional_imports": [
+      "builtins",
+      "os"
+    ]
+  },
+  "oracle_check": {
+    "condition_description": "The path passed to open() contains path traversal sequences (../) or absolute paths pointing outside the cache directory, confirming unsanitized user input reaches the file sink",
+    "trigger_patterns": [
+      "\\.\\./",
+      "\\.\\.[/\\\\]",
+      "^/etc/",
+      "^/proc/",
+      "^/root/",
+      "/\\.\\./",
+      "\\.\\.\\\\"
+    ],
+    "raise_type": "RuntimeError",
+    "raise_message_template": "PATH_INJECTION: unsanitized path traversal reached file sink — captured={captured} pattern={matched_pattern}"
+  },
+  "fuzz_guidance": {
+    "seed_corpus": [
+      "../../etc/passwd",
+      "../../../etc/shadow",
+      "/etc/passwd",
+      "images/../../../../etc/hosts",
+      "..\\..\\windows\\system32\\config\\sam",
+      "%2e%2e%2f%2e%2e%2fetc%2fpasswd"
+    ],
+    "skip_condition": "not isinstance(value, (str, bytes)) or len(value) == 0"
+  },
+  "_meta": {
+    "function": "postprocess_image",
+    "file": "gradio/image_utils.py",
+    "input_strategy": "direct_params",
+    "function_signature": "def postprocess_image(format: str, value: np.ndarray | PIL.Image.Image | str | Path | None, cache_dir: str, watermark: WatermarkOptions | None)",
+    "tainted_params": [
+      {
+        "name": "value",
+        "index": 1,
+        "type": "str | Path"
+      },
+      {
+        "name": "cache_dir",
+        "index": 2,
+        "type": "str"
+      }
+    ],
+    "model": "anthropic/claude-sonnet-4-6"
+  }
+}

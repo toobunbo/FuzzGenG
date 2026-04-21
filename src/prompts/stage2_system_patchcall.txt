@@ -47,10 +47,6 @@ corpus entry into a false positive regardless of whether the vulnerability exist
        - FORBIDDEN: Do NOT use ConsumeIntInRange() to select a strategy
          index or branch — this prevents the fuzzer from mutating payload.
 
-   - Always include a seed corpus (at least 6 entries) derived from
-     trigger_patterns and condition_desc. Mix seeds with fuzz-generated
-     inputs using ConsumeBool().
-     
 2. SKIP CONDITION
    - Apply the skip_hint early in TestOneInput.
    - If input does not meet minimum criteria, return immediately.
@@ -100,9 +96,24 @@ corpus entry into a false positive regardless of whether the vulnerability exist
 - Do NOT place the oracle check inside the function call try/except block —
   RuntimeError from the oracle must propagate to Atheris.
 
+### Seed Corpus Rules (CRITICAL)
+- Define _SEED_CORPUS as a module-level list OUTSIDE TestOneInput.
+- Populate it with at least 6 bypass-oriented entries derived from
+  trigger_patterns and condition_desc.
+- Entries must be designed to reach the sink and trigger oracle patterns.
+  Cover: internal IPs, metadata endpoints, file URIs, mixed-case schemes,
+  encoded variants.
+- NEVER reference _SEED_CORPUS inside TestOneInput.
+- NEVER use ConsumeBool() or ConsumeIntInRange() to select from _SEED_CORPUS.
+- Seeds are exported to disk at startup (see __main__ block in template).
+  libFuzzer will mutate their raw bytes directly — this is how coverage-guided
+  mutation works correctly.
+
 ## Quality Checklist (verify before outputting)
-[ ] All tainted params are fuzzed
-[ ] Seed corpus present and derived from trigger_patterns
+[ ] All tainted params are fuzzed via FuzzedDataProvider, consuming len(data) for single param
+[ ] No ConsumeBool()/ConsumeIntInRange() used to index into a seed list inside TestOneInput
+[ ] _SEED_CORPUS defined at module level, outside TestOneInput
+[ ] _SEED_CORPUS has at least 6 entries derived from trigger_patterns
 [ ] skip_condition applied to input only — not used in oracle
 [ ] patch_target mocked correctly, no pre-sink functions mocked
 [ ] Oracle check is OUTSIDE the function call try/except

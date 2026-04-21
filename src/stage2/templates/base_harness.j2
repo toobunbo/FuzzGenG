@@ -44,6 +44,17 @@ _TAINTED_PARAMS = {{ tainted_params | tojson }}
 {% if monitor_strategy == "patch_call" %}
 # === PATCH_CALL SKELETON ===
 # 1. INPUT GENERATION
+#    - Generate inputs for tainted params using FuzzedDataProvider.
+#    - For a SINGLE str param: consume ALL remaining bytes as one string:
+#        text = fdp.ConsumeString(len(data))
+#    - For MULTIPLE params: split the buffer proportionally by param count.
+#      For str/bytes params divide remaining bytes evenly; consume the last
+#      str/bytes param with remaining bytes. Fixed-size types (int, float,
+#      bool) consume their natural byte width first.
+#      FORBIDDEN: Do NOT use ConsumeIntInRange() to index a strategy or branch.
+#    - DO NOT embed a seed list inside TestOneInput or use ConsumeBool() to
+#      select from a hardcoded list — seeds are managed externally in _SEED_CORPUS.
+#
 # 2. SKIP CONDITION
 #    - Apply skip_hint early, return immediately if not met.
 #
@@ -68,12 +79,14 @@ _TAINTED_PARAMS = {{ tainted_params | tojson }}
 # 1. INPUT GENERATION
 #    - Generate inputs for tainted params using FuzzedDataProvider.
 #    - For a SINGLE str param: consume ALL remaining bytes as one string:
-#        svg_input = fdp.ConsumeUnicodeNoSurrogates(len(data))
-#    - For MULTIPLE params: split buffer proportionally with ConsumeIntInRange,
-#      then consume each part — do NOT use ConsumeIntInRange to pick a seed index.
+#        svg_input = fdp.ConsumeString(len(data))
+#    - For MULTIPLE params: split the buffer proportionally by param count.
+#      For str/bytes params divide remaining bytes evenly; consume the last
+#      str/bytes param with remaining bytes. Fixed-size types (int, float,
+#      bool) consume their natural byte width first.
+#      FORBIDDEN: Do NOT use ConsumeIntInRange() to index a strategy or branch.
 #    - DO NOT embed a seed list inside TestOneInput or use ConsumeBool() to
-#      select from a hardcoded list — this breaks coverage-guided mutation.
-#      Seeds are managed externally in _SEED_CORPUS and written to disk at startup.
+#      select from a hardcoded list — seeds are managed externally in _SEED_CORPUS.
 #
 # 2. SKIP CONDITION
 #    - Apply skip_hint early, return immediately if not met.

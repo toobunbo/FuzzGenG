@@ -39,10 +39,6 @@ or filter has been bypassed — the oracle fires.
        - FORBIDDEN: Do NOT use ConsumeIntInRange() to select a strategy
          index or branch — this prevents the fuzzer from mutating payload.
 
-   - Always include a seed corpus (at least 6 entries) derived from
-     trigger_patterns and condition_desc. Mix seeds with fuzz-generated
-     inputs using ConsumeBool().
-
 2. SKIP CONDITION
    - Apply the skip_hint early in TestOneInput.
    - If input does not meet minimum criteria, return immediately.

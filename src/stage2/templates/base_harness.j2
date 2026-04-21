@@ -44,15 +44,6 @@ _TAINTED_PARAMS = {{ tainted_params | tojson }}
 {% if monitor_strategy == "patch_call" %}
 # === PATCH_CALL SKELETON ===
 # 1. INPUT GENERATION
-#    - Generate inputs for tainted params using FuzzedDataProvider.
-#    - For a SINGLE str param: consume ALL remaining bytes as one string:
-#        text = fdp.ConsumeUnicodeNoSurrogates(len(data))
-#    - For MULTIPLE params: split buffer proportionally with ConsumeIntInRange,
-#      then consume each part — do NOT use ConsumeIntInRange to pick a seed index.
-#    - DO NOT embed a seed list inside TestOneInput or use ConsumeBool() to
-#      select from a hardcoded list — this breaks coverage-guided mutation.
-#      Seeds are managed externally in _SEED_CORPUS and written to disk at startup.
-#
 # 2. SKIP CONDITION
 #    - Apply skip_hint early, return immediately if not met.
 #

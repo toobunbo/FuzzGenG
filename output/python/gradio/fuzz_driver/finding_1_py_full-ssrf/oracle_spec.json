@@ -1,41 +1,41 @@
 {
   "monitor": {
     "strategy": "patch_call",
-    "patch_target": "gradio.image_utils.requests.get",
+    "patch_target": "gradio.image_utils.httpx.get",
     "target_arg_index": 0,
-    "target_arg_name": "url",
-    "capture_what": "The full URL argument passed to the HTTP request sink at line 252",
+    "target_arg_name": null,
+    "capture_what": "The first positional argument to httpx.get() — the full URL string constructed from user-controlled image_file",
     "additional_imports": [
-      "re"
+      "httpx"
     ]
   },
   "oracle_check": {
-    "condition_description": "The URL passed to the HTTP request sink is fully controlled by the user-supplied image_file parameter, pointing to internal/arbitrary hosts (SSRF confirmed when scheme+host in URL matches internal or attacker-controlled destinations)",
+    "condition_description": "The URL passed to httpx.get() points to an internal/private network address or cloud metadata endpoint, confirming SSRF exploitation with no allowlist or IP restriction in place",
     "trigger_patterns": [
       "https?://169\\.254\\.169\\.254",
       "https?://127\\.0\\.0\\.1",
+      "https?://localhost[:/]",
       "https?://0\\.0\\.0\\.0",
+      "https?://10\\.\\d+\\.\\d+\\.\\d+",
+      "https?://192\\.168\\.\\d+\\.\\d+",
+      "https?://172\\.(1[6-9]|2[0-9]|3[01])\\.\\d+\\.\\d+",
       "https?://\\[::1\\]",
-      "https?://localhost",
-      "https?://192\\.168\\.",
-      "https?://10\\.",
-      "https?://172\\.(1[6-9]|2[0-9]|3[01])\\.",
-      "https?://[a-zA-Z0-9\\-\\.]+\\.[a-zA-Z]{2,}",
+      "https?://metadata\\.google\\.internal",
       "file://"
     ],
     "raise_type": "RuntimeError",
-    "raise_message_template": "PY/FULL-SSRF: Full URL controlled by user-supplied image_file reached HTTP request sink — captured={captured} pattern={matched_pattern}"
+    "raise_message_template": "PY/FULL-SSRF: httpx.get() called with attacker-controlled internal/metadata URL — captured={captured} pattern={matched_pattern}"
   },
   "fuzz_guidance": {
     "seed_corpus": [
       "http://169.254.169.254/latest/meta-data/",
       "http://127.0.0.1:8080/admin",
       "http://192.168.1.1/",
-      "http://0.0.0.0/etc/passwd",
-      "https://attacker.example.com/malicious",
-      "http://[::1]/internal"
+      "http://10.0.0.1/internal",
+      "http://metadata.google.internal/computeMetadata/v1/",
+      "http://localhost/etc/passwd"
     ],
-    "skip_condition": "not (isinstance(image_file, str) and (image_file.startswith('http://') or image_file.startswith('https://') or image_file.startswith('file://')))"
+    "skip_condition": "not (image_file.startswith('http://') or image_file.startswith('https://') or image_file.startswith('file://'))"
   },
   "_meta": {
     "function": "extract_svg_content",

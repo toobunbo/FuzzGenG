@@ -154,7 +154,7 @@ python src/run_stage1.py \
 # Process a batch summary (auto-loops over findings, skips 'Error')
 # Options for --verdict: TP, NMD, FP, all
 python src/run_stage1.py \
-  --finding output/python/superset/verifycation_result/summary.json \
+  --finding output/python/gradio/verifycation_result/summary.json \
   --verdict TP
 ```
 

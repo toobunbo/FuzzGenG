@@ -4,38 +4,39 @@
     "patch_target": "gradio.image_utils.open",
     "target_arg_index": 0,
     "target_arg_name": null,
-    "capture_what": "The file path argument passed to open() at the sink, revealing path traversal",
+    "capture_what": "The file path argument passed to open() at the sink in postprocess_image",
     "additional_imports": [
       "re",
       "os"
     ]
   },
   "oracle_check": {
-    "condition_description": "The file path passed to open() contains path traversal sequences (../) or absolute paths outside the cache_dir, confirming the tainted value reaches the file sink without sanitization",
+    "condition_description": "The path argument to open() contains path traversal sequences ('../') or is an absolute path pointing outside the cache directory, indicating arbitrary file read exploitation",
     "trigger_patterns": [
       "\\.\\./",
       "\\.\\.[/\\\\]",
       "^/etc/",
-      "^/tmp/[^/]*\\.\\.",
-      "/\\.\\./",
-      "\\.\\.%2[fF]",
       "^/proc/",
+      "^/root/",
+      "^/home/",
       "^/var/",
-      "\\.\\.[/\\\\].*\\.\\."
+      "^/usr/",
+      "^/tmp/[^/]+\\.(conf|key|pem|env|cfg|ini|json|py|sh|txt)$",
+      "(?:^|/)\\.\\.(?:/|$)"
     ],
     "raise_type": "RuntimeError",
-    "raise_message_template": "PATH_INJECTION: Tainted path reached file sink without sanitization — captured={captured} pattern={matched_pattern}"
+    "raise_message_template": "PATH_INJECTION: Arbitrary file read via unsanitized path in postprocess_image — captured={captured} pattern={matched_pattern}"
   },
   "fuzz_guidance": {
     "seed_corpus": [
       "../../../../etc/passwd",
-      "../../../tmp/evil.png",
-      "/etc/cron.d/backdoor",
-      "..%2F..%2F..%2Fetc%2Fshadow",
-      "images/../../etc/hosts",
+      "../../../etc/shadow",
+      "/etc/passwd",
+      "../../../../../../root/.ssh/id_rsa",
+      "../config/secrets.json",
       "/proc/self/environ"
     ],
-    "skip_condition": "not isinstance(value, (str, bytes)) or len(value) == 0"
+    "skip_condition": "not isinstance(value, (str, Path)) or (isinstance(value, str) and not value)"
   },
   "_meta": {
     "function": "postprocess_image",
@@ -47,11 +48,6 @@
         "name": "value",
         "index": 1,
         "type": "str | Path"
-      },
-      {
-        "name": "format",
-        "index": 0,
-        "type": "str"
       }
     ],
     "model": "anthropic/claude-sonnet-4-6"

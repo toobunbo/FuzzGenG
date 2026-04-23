@@ -1,27 +1,26 @@
 {
   "monitor": {
-    "strategy": "patch_call",
+    "strategy": "patch_call", 
     "patch_target": "gradio.image_utils.httpx.get",
     "target_arg_index": 0,
     "target_arg_name": null,
-    "capture_what": "The first positional argument to httpx.get() — the full URL string constructed from user-controlled image_file",
+    "capture_what": "The URL argument passed to httpx.get() — the full attacker-controlled URL string",
     "additional_imports": [
-      "httpx"
+      "re"
     ]
   },
   "oracle_check": {
-    "condition_description": "The URL passed to httpx.get() points to an internal/private network address or cloud metadata endpoint, confirming SSRF exploitation with no allowlist or IP restriction in place",
+    "condition_description": "The URL passed to httpx.get() points to an internal/private IP, localhost, or cloud metadata endpoint, confirming SSRF exploitation with no validation blocking the request",
     "trigger_patterns": [
       "https?://169\\.254\\.169\\.254",
       "https?://127\\.0\\.0\\.1",
-      "https?://localhost[:/]",
+      "https?://localhost",
       "https?://0\\.0\\.0\\.0",
       "https?://10\\.\\d+\\.\\d+\\.\\d+",
       "https?://192\\.168\\.\\d+\\.\\d+",
       "https?://172\\.(1[6-9]|2[0-9]|3[01])\\.\\d+\\.\\d+",
       "https?://\\[::1\\]",
-      "https?://metadata\\.google\\.internal",
-      "file://"
+      "https?://metadata\\.google\\.internal"
     ],
     "raise_type": "RuntimeError",
     "raise_message_template": "PY/FULL-SSRF: httpx.get() called with attacker-controlled internal/metadata URL — captured={captured} pattern={matched_pattern}"
@@ -29,13 +28,13 @@
   "fuzz_guidance": {
     "seed_corpus": [
       "http://169.254.169.254/latest/meta-data/",
-      "http://127.0.0.1:8080/admin",
+      "http://127.0.0.1/admin",
+      "http://localhost:8080/internal",
       "http://192.168.1.1/",
-      "http://10.0.0.1/internal",
-      "http://metadata.google.internal/computeMetadata/v1/",
-      "http://localhost/etc/passwd"
+      "http://10.0.0.1/secret",
+      "http://metadata.google.internal/computeMetadata/v1/"
     ],
-    "skip_condition": "not (image_file.startswith('http://') or image_file.startswith('https://') or image_file.startswith('file://'))"
+    "skip_condition": "not (isinstance(image_file, str) and ('http://' in str(image_file) or 'https://' in str(image_file)))"
   },
   "_meta": {
     "function": "extract_svg_content",

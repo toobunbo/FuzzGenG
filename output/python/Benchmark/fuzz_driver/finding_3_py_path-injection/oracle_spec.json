@@ -1,0 +1,49 @@
+{
+  "monitor": {
+    "strategy": "patch_call",
+    "patch_target": "builtins.open",
+    "target_arg_index": 0,
+    "target_arg_name": "file",
+    "capture_what": "The file path argument passed to open(), which contains the traversal payload after URL-decoding bypasses the '../' literal check",
+    "additional_imports": [
+      "builtins"
+    ]
+  },
+  "oracle_check": {
+    "condition_description": "The file path passed to open() contains path traversal sequences (../) or is an absolute path (/), indicating the '../' literal check was bypassed via URL-encoding or other obfuscation",
+    "trigger_patterns": [
+      "\\.\\./",
+      "\\.\\.\\\\",
+      "^/[^/]",
+      "/\\.\\./",
+      "\\.\\.[/\\\\]"
+    ],
+    "raise_type": "RuntimeError",
+    "raise_message_template": "PATH_INJECTION: Path traversal payload reached open() sink — captured={captured} pattern={matched_pattern}"
+  },
+  "fuzz_guidance": {
+    "seed_corpus": [
+      "%2e%2e%2fetc/passwd",
+      "%2e%2e%2f%2e%2e%2fetc/shadow",
+      "/etc/passwd",
+      "..%2fetc/passwd",
+      "%2e%2e/etc/passwd",
+      "..%5cetc%5cpasswd"
+    ],
+    "skip_condition": "False"
+  },
+  "_meta": {
+    "function": "BenchmarkTest00006_post",
+    "file": "testcode/BenchmarkTest00006.py",
+    "input_strategy": "flask_view",
+    "function_signature": "def BenchmarkTest00006_post(self)",
+    "tainted_params": [
+      {
+        "name": "BenchmarkTest00006",
+        "index": -1,
+        "type": "str"
+      }
+    ],
+    "model": "anthropic/claude-sonnet-4-6"
+  }
+}

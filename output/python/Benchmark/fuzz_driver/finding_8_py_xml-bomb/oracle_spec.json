@@ -1,0 +1,49 @@
+{
+  "monitor": {
+    "strategy": "patch_call",
+    "patch_target": "xml.dom.minidom.parseString",
+    "target_arg_index": 0,
+    "target_arg_name": "string",
+    "capture_what": "The XML string argument passed to the parser, which may contain DTD entity bomb definitions",
+    "additional_imports": [
+      "xml.dom.minidom",
+      "xml.sax"
+    ]
+  },
+  "oracle_check": {
+    "condition_description": "The XML payload reaching the parser contains a DOCTYPE declaration with ENTITY definitions that reference other entities, indicating an XML bomb (billion laughs or quadratic blowup) attack pattern",
+    "trigger_patterns": [
+      "<!DOCTYPE\\s+\\w+\\s*\\[",
+      "<!ENTITY\\s+\\w+\\s+[\"'].*&\\w+;.*[\"']",
+      "<!ENTITY\\s+\\w+\\s+SYSTEM",
+      "&lol\\d*;",
+      "<!\\[CDATA\\[.*\\]\\]>"
+    ],
+    "raise_type": "RuntimeError",
+    "raise_message_template": "PY/XML-BOMB: XML entity expansion attack payload reached SAX parser without DTD protection — captured={captured} pattern={matched_pattern}"
+  },
+  "fuzz_guidance": {
+    "seed_corpus": [
+      "<?xml version=\"1.0\"?><!DOCTYPE lolz [<!ENTITY lol \"lol\"><!ENTITY lol2 \"&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;\"><!ENTITY lol3 \"&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;\">]><root>&lol3;</root>",
+      "<?xml version=\"1.0\"?><!DOCTYPE bomb [<!ENTITY a \"aaaaaaaaaa\"><!ENTITY b \"&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;\"><!ENTITY c \"&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;\">]><root>&c;</root>",
+      "<?xml version=\"1.0\"?><!DOCTYPE test [<!ENTITY x \"x\"><!ENTITY x2 \"&x;&x;\"><!ENTITY x4 \"&x2;&x2;\"><!ENTITY x8 \"&x4;&x4;\">]><test>&x8;</test>",
+      "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><foo>&xxe;</foo>",
+      "<?xml version=\"1.0\"?><!DOCTYPE lolz [<!ENTITY lol \"lol\"><!ENTITY lol2 \"&lol;&lol;&lol;&lol;&lol;\">]><lolz>&lol2;</lolz>"
+    ],
+    "skip_condition": "False"
+  },
+  "_meta": {
+    "function": "BenchmarkTest00017_post",
+    "file": "testcode/BenchmarkTest00017.py",
+    "input_strategy": "flask_view",
+    "function_signature": "def BenchmarkTest00017_post(self)",
+    "tainted_params": [
+      {
+        "name": "BenchmarkTest00017",
+        "index": -1,
+        "type": "str"
+      }
+    ],
+    "model": "anthropic/claude-sonnet-4-6"
+  }
+}

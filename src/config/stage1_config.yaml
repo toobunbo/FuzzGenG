@@ -1,7 +1,7 @@
 model: "ollama/deepseek-r1:7b"
 
 temperature: 0.0    # hoàn toàn deterministic
-max_tokens: 4096    # đủ cho oracle_spec phức tạp
+max_tokens: 8192    # tăng để tránh bị cắt JSON sau THINKING block
 timeout: 180
 
 prompts_dir: "src/prompts"

@@ -21,13 +21,34 @@ def call_llm(system_prompt: str, user_prompt: str, model: str,
 
 def parse_oracle_spec(raw_text: str) -> dict:
     text = raw_text.strip()
+
+    # 1. Try extracting from ```json ... ``` or ``` ... ``` fence first
     fence = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", text)
     if fence:
-        text = fence.group(1)
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"LLM output not valid JSON:\n{raw_text}\n\nError: {e}")
+        candidate = fence.group(1).strip()
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            pass  # fall through to next strategy
+
+    # 2. Fallback: find the first balanced { ... } JSON object in the raw text.
+    #    Handles LLMs that emit THINKING: ... text before a bare JSON block.
+    start = text.find("{")
+    if start != -1:
+        depth = 0
+        for i, ch in enumerate(text[start:], start):
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    candidate = text[start:i + 1]
+                    try:
+                        return json.loads(candidate)
+                    except json.JSONDecodeError:
+                        break  # found a {} block but it's not valid JSON
+
+    raise ValueError(f"LLM output not valid JSON:\n{raw_text}")
 
 def validate_oracle_spec(spec: dict) -> None:
     # Top-level blocks

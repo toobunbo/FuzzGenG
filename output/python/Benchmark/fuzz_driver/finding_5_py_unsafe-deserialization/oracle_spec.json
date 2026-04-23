@@ -1,0 +1,53 @@
+{
+  "monitor": {
+    "strategy": "patch_call",
+    "patch_target": "testcode.BenchmarkTest00164.pickle.loads",
+    "target_arg_index": 0,
+    "target_arg_name": null,
+    "capture_what": "The bytes argument passed to pickle.loads() — the deserialized payload derived from user-controlled form input",
+    "additional_imports": [
+      "pickle",
+      "base64"
+    ]
+  },
+  "oracle_check": {
+    "condition_description": "The bytes passed to pickle.loads() contain pickle opcodes indicating a crafted/malicious payload — specifically GLOBAL, REDUCE, or protocol header opcodes that can trigger arbitrary code execution",
+    "trigger_patterns": [
+      "\\x80[\\x00-\\x05]",
+      "\\x80.",
+      "cos\\n",
+      "csubprocess\\n",
+      "cbuiltins\\n",
+      "cos\nsystem\n",
+      "\\x8c[\\x00-\\xff]",
+      "(?s).*[cR].*",
+      "(?s)\\x80..*[cR]"
+    ],
+    "raise_type": "RuntimeError",
+    "raise_message_template": "UNSAFE_DESERIALIZATION: pickle.loads() received user-controlled pickle bytes — arbitrary code execution possible — captured={captured} pattern={matched_pattern}"
+  },
+  "fuzz_guidance": {
+    "seed_corpus": [
+      "gASVIAAAAAAAAACMCHN1YnByb2Nlc3OUjAZzeXN0ZW2UkZSMBmlkAAAAlIWUUpQu",
+      "Y29zCnN5c3RlbQpwMAooUydpZCcKdFIu",
+      "gASVGgAAAAAAAACMBXBvc2l4lIwGc3lzdGVtlJOUjAJpZJSFlFKU",
+      "KGNvcwpzeXN0ZW0KcDAKKFMnaWQnCnQxUnAyClgu",
+      "gASVIAAAAAAAAACMCGJ1aWx0aW5zlIwEZXZhbJSTlIwGX19pbXBvcnRfXyhfX2J1aWx0aW5zX18pXJSFlFKU"
+    ],
+    "skip_condition": "False"
+  },
+  "_meta": {
+    "function": "BenchmarkTest00164_post",
+    "file": "testcode/BenchmarkTest00164.py",
+    "input_strategy": "flask_view",
+    "function_signature": "def BenchmarkTest00164_post(self)",
+    "tainted_params": [
+      {
+        "name": "BenchmarkTest00164",
+        "index": -1,
+        "type": "str"
+      }
+    ],
+    "model": "anthropic/claude-sonnet-4-6"
+  }
+}

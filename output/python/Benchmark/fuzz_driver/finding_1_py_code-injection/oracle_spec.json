@@ -1,0 +1,56 @@
+{
+  "monitor": {
+    "strategy": "patch_call",
+    "patch_target": "testcode.BenchmarkTest00073.eval",
+    "target_arg_index": 0,
+    "target_arg_name": null,
+    "capture_what": "The first argument passed to eval() — the tainted string derived from user-controlled cookie data",
+    "additional_imports": [
+      "builtins"
+    ]
+  },
+  "oracle_check": {
+    "condition_description": "The argument passed to eval() contains dangerous Python expressions indicating code injection — specifically patterns like __import__, __builtins__, os.system, subprocess, or other code execution primitives that bypass the weak quote validation",
+    "trigger_patterns": [
+      "__import__\\s*\\(",
+      "__builtins__",
+      "os\\.system\\s*\\(",
+      "subprocess",
+      "open\\s*\\(",
+      "exec\\s*\\(",
+      "compile\\s*\\(",
+      "globals\\s*\\(",
+      "locals\\s*\\(",
+      "__class__",
+      "__mro__",
+      "__subclasses__"
+    ],
+    "raise_type": "RuntimeError",
+    "raise_message_template": "PY/CODE-INJECTION: eval() received tainted payload with dangerous code injection pattern — captured={captured} pattern={matched_pattern}"
+  },
+  "fuzz_guidance": {
+    "seed_corpus": [
+      "'__import__(\"os\").system(\"id\")'",
+      "'__builtins__'",
+      "'__import__(\"subprocess\").check_output([\"id\"])'",
+      "__import__('os').system('id')",
+      "'globals()'",
+      "'open(\"/etc/passwd\").read()'"
+    ],
+    "skip_condition": "False"
+  },
+  "_meta": {
+    "function": "BenchmarkTest00073_post",
+    "file": "testcode/BenchmarkTest00073.py",
+    "input_strategy": "flask_view",
+    "function_signature": "def BenchmarkTest00073_post(self)",
+    "tainted_params": [
+      {
+        "name": "BenchmarkTest00073",
+        "index": -1,
+        "type": "str"
+      }
+    ],
+    "model": "anthropic/claude-sonnet-4-6"
+  }
+}

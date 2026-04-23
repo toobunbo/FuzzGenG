@@ -1,42 +1,39 @@
 {
   "monitor": {
     "strategy": "patch_call",
-    "patch_target": "gradio.image_utils.open",
+    "patch_target": "builtins.open",
     "target_arg_index": 0,
-    "target_arg_name": null,
-    "capture_what": "The file path argument passed to open() at the sink in postprocess_image",
+    "target_arg_name": "file",
+    "capture_what": "The file path argument passed to open() — confirms whether a traversal or absolute path reaches the sink",
     "additional_imports": [
-      "re",
-      "os"
+      "builtins"
     ]
   },
   "oracle_check": {
-    "condition_description": "The path argument to open() contains path traversal sequences ('../') or is an absolute path pointing outside the cache directory, indicating arbitrary file read exploitation",
+    "condition_description": "The path argument to open() contains '../' traversal sequences or is an absolute path pointing outside the cache directory (e.g., /etc/passwd, /etc/shadow, /proc/self/environ)",
     "trigger_patterns": [
       "\\.\\./",
       "\\.\\.[/\\\\]",
       "^/etc/",
       "^/proc/",
       "^/root/",
-      "^/home/",
-      "^/var/",
-      "^/usr/",
-      "^/tmp/[^/]+\\.(conf|key|pem|env|cfg|ini|json|py|sh|txt)$",
-      "(?:^|/)\\.\\.(?:/|$)"
+      "^/home/[^/]+/\\.",
+      "/\\.\\./",
+      "[/\\\\]\\.\\.[/\\\\]"
     ],
     "raise_type": "RuntimeError",
-    "raise_message_template": "PATH_INJECTION: Arbitrary file read via unsanitized path in postprocess_image — captured={captured} pattern={matched_pattern}"
+    "raise_message_template": "PATH_INJECTION: Arbitrary file read via unsanitized path — captured={captured} pattern={matched_pattern}"
   },
   "fuzz_guidance": {
     "seed_corpus": [
-      "../../../../etc/passwd",
-      "../../../etc/shadow",
+      "../../../etc/passwd",
+      "../../etc/shadow",
       "/etc/passwd",
-      "../../../../../../root/.ssh/id_rsa",
-      "../config/secrets.json",
-      "/proc/self/environ"
+      "/proc/self/environ",
+      "images/../../../../etc/hosts",
+      "..\\..\\..\\windows\\system32\\drivers\\etc\\hosts"
     ],
-    "skip_condition": "not isinstance(value, (str, Path)) or (isinstance(value, str) and not value)"
+    "skip_condition": "not isinstance(value, (str, bytes)) or len(value) == 0"
   },
   "_meta": {
     "function": "postprocess_image",

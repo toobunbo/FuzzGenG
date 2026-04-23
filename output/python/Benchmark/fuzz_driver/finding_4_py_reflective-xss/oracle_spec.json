@@ -1,0 +1,50 @@
+{
+  "monitor": {
+    "strategy": "patch_call",
+    "patch_target": "werkzeug.datastructures.Headers.__setitem__",
+    "target_arg_index": 1,
+    "target_arg_name": "value",
+    "capture_what": "The value being set as an HTTP response header, which may contain CRLF injection or XSS payloads",
+    "additional_imports": [
+      "werkzeug.datastructures"
+    ]
+  },
+  "oracle_check": {
+    "condition_description": "The header value contains CRLF characters (\\r\\n or \\n) enabling HTTP response splitting, or contains unencoded HTML/script tags enabling XSS",
+    "trigger_patterns": [
+      "\\r\\n",
+      "\\r",
+      "\\n",
+      "<script[^>]*>",
+      "<[a-zA-Z]+[^>]*on[a-zA-Z]+\\s*=",
+      "javascript:"
+    ],
+    "raise_type": "RuntimeError",
+    "raise_message_template": "PY/REFLECTIVE-XSS: HTTP header injection detected — tainted value reached response header with dangerous content — captured={captured} pattern={matched_pattern}"
+  },
+  "fuzz_guidance": {
+    "seed_corpus": [
+      "injection\r\nX-Injected: evil",
+      "value\r\nSet-Cookie: session=hijacked",
+      "<script>alert(1)</script>",
+      "test\r\nContent-Type: text/html\r\n\r\n<html><script>alert(1)</script>",
+      "payload\nX-Custom: injected",
+      "xss<img src=x onerror=alert(1)>"
+    ],
+    "skip_condition": "False"
+  },
+  "_meta": {
+    "function": "BenchmarkTest00150_post",
+    "file": "testcode/BenchmarkTest00150.py",
+    "input_strategy": "flask_view",
+    "function_signature": "def BenchmarkTest00150_post(self)",
+    "tainted_params": [
+      {
+        "name": "BenchmarkTest00150",
+        "index": -1,
+        "type": "str"
+      }
+    ],
+    "model": "anthropic/claude-sonnet-4-6"
+  }
+}

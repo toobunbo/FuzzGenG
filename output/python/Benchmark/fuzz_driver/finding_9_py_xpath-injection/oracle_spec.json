@@ -1,0 +1,51 @@
+{
+  "monitor": {
+    "strategy": "patch_call",
+    "patch_target": "lxml.etree._Element.xpath",
+    "target_arg_index": 0,
+    "target_arg_name": null,
+    "capture_what": "The XPath expression string argument passed to .xpath(), which should contain injected XPath metacharacters from the tainted cookie value",
+    "additional_imports": [
+      "lxml.etree"
+    ]
+  },
+  "oracle_check": {
+    "condition_description": "The XPath expression string contains unescaped XPath injection payloads: single quotes combined with XPath operators/keywords (or, and, =), predicate-breaking bracket sequences, or union operator patterns that indicate the user-controlled value was concatenated unsafely into the expression",
+    "trigger_patterns": [
+      "'\\s+or\\s+'",
+      "'\\s+and\\s+'",
+      "'\\s*=\\s*'",
+      "\\]\\s*\\|\\s*/",
+      "'\\s*or\\s*'\\s*1\\s*'\\s*=\\s*'\\s*1",
+      "\\]\\s*\\|\\s*//\\*",
+      "'[^']*'\\s*=\\s*'[^']*'"
+    ],
+    "raise_type": "RuntimeError",
+    "raise_message_template": "XPATH_INJECTION: XPath expression contains injected payload from unsanitized cookie input — captured={captured} pattern={matched_pattern}"
+  },
+  "fuzz_guidance": {
+    "seed_corpus": [
+      "' or '1'='1",
+      "'] | //*",
+      "x' or 'a'='a",
+      "'] | //user[name='admin",
+      "' or 1=1 or 'x'='x",
+      "admin'] | //*['"
+    ],
+    "skip_condition": "False"
+  },
+  "_meta": {
+    "function": "BenchmarkTest00018_post",
+    "file": "testcode/BenchmarkTest00018.py",
+    "input_strategy": "flask_view",
+    "function_signature": "def BenchmarkTest00018_post(self)",
+    "tainted_params": [
+      {
+        "name": "bar",
+        "index": -1,
+        "type": "str"
+      }
+    ],
+    "model": "anthropic/claude-sonnet-4-6"
+  }
+}

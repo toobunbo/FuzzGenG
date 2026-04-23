@@ -1,0 +1,50 @@
+{
+  "monitor": {
+    "strategy": "patch_call",
+    "patch_target": "testcode.BenchmarkTest00156.eval",
+    "target_arg_index": 0,
+    "target_arg_name": null,
+    "capture_what": "The first argument passed to eval() — the expression string being evaluated",
+    "additional_imports": []
+  },
+  "oracle_check": {
+    "condition_description": "The string passed to eval() contains user-controlled code injection patterns such as __import__, os.system, exec, or other dangerous builtins, indicating user input reached the eval sink",
+    "trigger_patterns": [
+      "__import__\\s*\\(",
+      "os\\.system\\s*\\(",
+      "subprocess",
+      "open\\s*\\(",
+      "exec\\s*\\(",
+      "builtins",
+      "globals\\s*\\(",
+      "locals\\s*\\("
+    ],
+    "raise_type": "RuntimeError",
+    "raise_message_template": "PY/CODE-INJECTION: User-controlled input reached eval() sink — captured={captured} pattern={matched_pattern}"
+  },
+  "fuzz_guidance": {
+    "seed_corpus": [
+      "__import__('os').system('id')",
+      "__import__('subprocess').check_output(['id'])",
+      "exec('import os; os.system(\"id\")')",
+      "globals()['__builtins__'].__import__('os').system('id')",
+      "open('/etc/passwd').read()",
+      "1+1; __import__('os').system('whoami')"
+    ],
+    "skip_condition": "False"
+  },
+  "_meta": {
+    "function": "BenchmarkTest00156_post",
+    "file": "testcode/BenchmarkTest00156.py",
+    "input_strategy": "flask_view",
+    "function_signature": "def BenchmarkTest00156_post(self)",
+    "tainted_params": [
+      {
+        "name": "BenchmarkTest00156",
+        "index": -1,
+        "type": "str"
+      }
+    ],
+    "model": "anthropic/claude-sonnet-4-6"
+  }
+}

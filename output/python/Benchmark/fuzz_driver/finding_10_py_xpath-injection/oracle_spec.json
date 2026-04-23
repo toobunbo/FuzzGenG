@@ -1,0 +1,52 @@
+{
+  "monitor": {
+    "strategy": "patch_call",
+    "patch_target": "lxml.etree._Element.xpath",
+    "target_arg_index": 0,
+    "target_arg_name": null,
+    "capture_what": "The XPath expression string argument passed to the xpath() call, containing unsanitized user-controlled input",
+    "additional_imports": [
+      "lxml.etree"
+    ]
+  },
+  "oracle_check": {
+    "condition_description": "The XPath expression argument contains XPath metacharacters that were not sanitized (double quotes, square brackets, forward slashes used as injection vectors, or XPath boolean operators) derived from the cookie value",
+    "trigger_patterns": [
+      "\"[^\"]*\"\\s*=\\s*\"",
+      "\\[\\s*\\d+\\s*\\]",
+      "//[a-zA-Z*]",
+      "\\]\\s*\\|\\s*//",
+      "or\\s+\"[^\"]*\"\\s*=\\s*\"",
+      "and\\s+\"[^\"]*\"\\s*=\\s*\"",
+      "\"\\s*or\\s+",
+      "\"\\s*and\\s+"
+    ],
+    "raise_type": "RuntimeError",
+    "raise_message_template": "XPATH_INJECTION: XPath expression contains unsanitized user-controlled metacharacters — captured={captured} pattern={matched_pattern}"
+  },
+  "fuzz_guidance": {
+    "seed_corpus": [
+      "\" or \"1\"=\"1",
+      "\"] | //* | //foo[\"",
+      "//user[1]",
+      "\" or 1=1 or \"\"=\"",
+      "[1] or [2]",
+      "\"] | //*[\"a\"=\"a"
+    ],
+    "skip_condition": "False"
+  },
+  "_meta": {
+    "function": "BenchmarkTest00021_post",
+    "file": "testcode/BenchmarkTest00021.py",
+    "input_strategy": "flask_view",
+    "function_signature": "def BenchmarkTest00021_post(self)",
+    "tainted_params": [
+      {
+        "name": "BenchmarkTest00021",
+        "index": -1,
+        "type": "str"
+      }
+    ],
+    "model": "anthropic/claude-sonnet-4-6"
+  }
+}

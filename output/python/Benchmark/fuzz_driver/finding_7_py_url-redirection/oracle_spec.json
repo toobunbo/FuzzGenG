@@ -1,0 +1,48 @@
+{
+  "monitor": {
+    "strategy": "patch_call",
+    "patch_target": "flask.redirect",
+    "target_arg_index": 0,
+    "target_arg_name": "location",
+    "capture_what": "The first argument (location/URL) passed to flask.redirect, which contains the untrusted cookie value after base64 round-trip",
+    "additional_imports": [
+      "flask"
+    ]
+  },
+  "oracle_check": {
+    "condition_description": "The location argument passed to flask.redirect contains an absolute URL pointing to an external domain (http:// or https://), confirming the open redirect vulnerability",
+    "trigger_patterns": [
+      "https?://[^/\\s]+\\.[^/\\s]+",
+      "https?://evil\\.com",
+      "https?://attacker\\.",
+      "//[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+    ],
+    "raise_type": "RuntimeError",
+    "raise_message_template": "URL_REDIRECTION: Open redirect — untrusted cookie value reaches flask.redirect() without validation — captured={captured} pattern={matched_pattern}"
+  },
+  "fuzz_guidance": {
+    "seed_corpus": [
+      "http://evil.com",
+      "https://attacker.com/phish",
+      "http://malicious.example.org/steal?token=abc",
+      "https://evil.com/fake-login",
+      "//evil.com/redirect",
+      "http://192.168.1.1/internal"
+    ],
+    "skip_condition": "False"
+  },
+  "_meta": {
+    "function": "BenchmarkTest00067_post",
+    "file": "testcode/BenchmarkTest00067.py",
+    "input_strategy": "flask_view",
+    "function_signature": "def BenchmarkTest00067_post(self)",
+    "tainted_params": [
+      {
+        "name": "BenchmarkTest00067",
+        "index": -1,
+        "type": "str"
+      }
+    ],
+    "model": "anthropic/claude-sonnet-4-6"
+  }
+}

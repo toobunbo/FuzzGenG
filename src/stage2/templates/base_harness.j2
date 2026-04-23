@@ -45,8 +45,6 @@ _TAINTED_PARAMS = {{ tainted_params | tojson }}
 # === PATCH_CALL SKELETON ===
 # 1. INPUT GENERATION
 #    - Generate inputs for tainted params using FuzzedDataProvider.
-#    - For a SINGLE str param: consume ALL remaining bytes as one string:
-#        text = fdp.ConsumeString(len(data))
 #    - For MULTIPLE params: split the buffer proportionally by param count.
 #      For str/bytes params divide remaining bytes evenly; consume the last
 #      str/bytes param with remaining bytes. Fixed-size types (int, float,
